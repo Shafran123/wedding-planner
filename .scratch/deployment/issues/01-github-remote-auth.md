@@ -1,6 +1,11 @@
 # 01 — Push repo to GitHub and authenticate
 
-`Status: ready-for-human`
+`Status: resolved`
+
+## Comments
+
+- `gh` authenticated as Shafran123 with `repo` + `workflow` scopes.
+- Remote added, full history pushed: `main` → `github.com/Shafran123/wedding-planner`, default branch `main`.
 `Blocked by:` none — everything CI-related waits on this.
 
 ## Context

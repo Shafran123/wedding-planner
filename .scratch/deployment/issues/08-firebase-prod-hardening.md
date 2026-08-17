@@ -1,7 +1,13 @@
 # 08 — Firebase prod hardening
 
-`Status: ready-for-human` (console step) — remainder agent-executable
+`Status: ready-for-human` (paste step) — remainder agent-executable
 `Blocked by:` none; must land before 09.
+
+## Comments
+
+- **Decision (user): reuse the existing service account** (`wedding-planner-dae2b-firebase-adminsdk-fbsvc-dea326c1a8.json`) — no console work needed.
+- The compact one-line JSON for the Railway `FIREBASE_SERVICE_ACCOUNT_JSON` env var has been prepared at `/var/folders/y8/qmx8c9rs4mx7sgn0yww5fzpr0000gn/T/opencode/railway-env/firebase-service-account-json.txt` (kept out of the repo). Paste its contents into Railway during ticket 07 provisioning.
+- Storage rules deploy + prod CORS check remain after Railway/Vercel exist.
 
 ## Context
 

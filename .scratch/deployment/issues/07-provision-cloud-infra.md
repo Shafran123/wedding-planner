@@ -3,6 +3,12 @@
 `Status: ready-for-human` (console steps need the owner's accounts)
 `Blocked by:` 01 (platforms import the GitHub repo), 03 (Railway needs the start path).
 
+## Comments
+
+**Atlas — DONE.** Cluster `cluster0.xazm6lr.mongodb.net`, user `devshaf_db_user`, connectivity verified from this machine. Railway `MONGODB_URI` = the `mongodb+srv://…` string with `/wedding-planner` appended as the database name (the app does not append one). The password is not stored in this repo — it lives in the user's Atlas export.
+
+**Remaining:** Railway service + Vercel project + GitHub Secrets, per the checklist below.
+
 ## Context
 
 Nothing exists in the cloud yet. Decided: Atlas M0 (AWS Bahrain), Railway (API), Vercel (web), platform URLs only.
