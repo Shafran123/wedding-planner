@@ -10,6 +10,7 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  updateProfile,
   type User,
 } from "firebase/auth";
 import {
@@ -59,6 +60,7 @@ export {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  updateProfile,
   ref,
   uploadBytes,
   getDownloadURL,

@@ -1,0 +1,15 @@
+export const TZ_CHOICES = [
+  "Asia/Dubai",
+  "Asia/Riyadh",
+  "Asia/Kuwait",
+  "Asia/Qatar",
+  "Asia/Bahrain",
+  "Asia/Muscat",
+  "Asia/Kolkata",
+  "Asia/Colombo",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "America/New_York",
+  "America/Los_Angeles",
+] as const;

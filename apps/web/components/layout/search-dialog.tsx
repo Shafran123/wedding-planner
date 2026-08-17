@@ -10,8 +10,9 @@ import {
   MapPin,
   StickyNote,
   Search,
+  CreditCard,
 } from "lucide-react";
-import type { Task, Expense, Vendor, Event, Location, Note } from "@wedding/shared";
+import type { Task, Expense, Vendor, Event, Location, Note, Payment } from "@wedding/shared";
 import { api } from "@/lib/api";
 import {
   Dialog,
@@ -30,6 +31,7 @@ interface SearchIndex {
   events: Event[];
   notes: Note[];
   expenses: Expense[];
+  payments: Payment[];
 }
 
 interface Group {
@@ -45,6 +47,7 @@ const GROUPS: Group[] = [
   { key: "events", label: "Events", icon: CalendarDays },
   { key: "notes", label: "Notes", icon: StickyNote },
   { key: "expenses", label: "Expenses", icon: Receipt },
+  { key: "payments", label: "Payments", icon: CreditCard },
 ];
 
 export function SearchDialog({
@@ -65,13 +68,14 @@ export function SearchDialog({
     let cancelled = false;
     void (async () => {
       try {
-        const [tasks, vendors, locations, events, notes, expenses] = await Promise.all([
+        const [tasks, vendors, locations, events, notes, expenses, payments] = await Promise.all([
           api<{ tasks: Task[] }>("/api/tasks"),
           api<{ vendors: Vendor[] }>("/api/vendors"),
           api<{ locations: Location[] }>("/api/locations"),
           api<{ events: Event[] }>("/api/events"),
           api<{ notes: Note[] }>("/api/notes"),
           api<{ expenses: Expense[] }>("/api/expenses"),
+          api<{ payments: Payment[] }>("/api/payments"),
         ]);
         if (!cancelled) {
           setIndex({
@@ -81,10 +85,11 @@ export function SearchDialog({
             events: events.events,
             notes: notes.notes,
             expenses: expenses.expenses,
+            payments: payments.payments,
           });
         }
       } catch {
-        if (!cancelled) setIndex({ tasks: [], vendors: [], locations: [], events: [], notes: [], expenses: [] });
+        if (!cancelled) setIndex({ tasks: [], vendors: [], locations: [], events: [], notes: [], expenses: [], payments: [] });
       }
     })();
     return () => {
@@ -103,6 +108,7 @@ export function SearchDialog({
       events: index.events.filter((e) => match(e.name)),
       notes: index.notes.filter((n) => match(n.title) || match(n.content)),
       expenses: index.expenses.filter((e) => match(e.name)),
+      payments: index.payments.filter((p) => match(p.vendorName) || match(p.expenseName) || match(p.reference)),
     };
   }, [index, query]);
 
@@ -153,22 +159,29 @@ export function SearchDialog({
                       const href =
                         group.key === "tasks"
                           ? `/tasks/${item.id}`
-                          : group.key === "expenses"
-                            ? "/budget"
+                          : group.key === "expenses" || group.key === "payments"
+                            ? group.key === "expenses"
+                              ? "/budget"
+                              : "/budget/payments"
                             : `/${group.key}/${item.id}`;
                       const sub =
                         group.key === "tasks"
                           ? relativeDue((item as Task).dueDate)
                           : group.key === "expenses"
                             ? formatMinor((item as Expense).estimatedMinor)
-                            : group.key === "events"
-                              ? new Date((item as Event).date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                              : group.key === "notes"
-                                ? (item as Note).category
-                                : ((item as Vendor).address ??
-                                  (item as Vendor).category ??
-                                  (item as Location).type);
-                      const name = (item as { name?: string }).name ?? (item as { title?: string }).title;
+                            : group.key === "payments"
+                              ? formatMinor((item as Payment).amountMinor)
+                              : group.key === "events"
+                                ? new Date((item as Event).date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                                : group.key === "notes"
+                                  ? (item as Note).category
+                                  : ((item as Vendor).address ??
+                                    (item as Vendor).category ??
+                                    (item as Location).type);
+                      const name =
+                        group.key === "payments"
+                          ? (item as Payment).vendorName ?? (item as Payment).expenseName ?? "Payment"
+                          : (item as { name?: string }).name ?? (item as { title?: string }).title;
                       return (
                         <li key={item.id}>
                           <Link

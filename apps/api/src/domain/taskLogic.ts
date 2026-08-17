@@ -7,9 +7,7 @@ export type DueWindow =
   | "future"
   | "none";
 
-function startOfUtcDay(date: Date): number {
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-}
+import { startOfUtcDay } from "./dates.js";
 
 export function dueWindow(
   dueDate: string | undefined,

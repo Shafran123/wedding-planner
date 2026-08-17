@@ -2,6 +2,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /weddings/{weddingId}/{allPaths=**} {
+      // MVP limitation: Storage rules cannot check wedding membership without
+      // a Firestore lookup (not enabled in this MVP). Any authenticated user
+      // can read a file if they know its path. Paths contain random segments
+      // (un-guessable), and attachment *metadata* is only persisted through
+      // the API, which enforces membership. Tighten here once Firestore
+      // lookups (get()/exists()) are available in the project.
       allow read: if request.auth != null;
       allow write: if request.auth != null
         && request.resource.size < 10 * 1024 * 1024

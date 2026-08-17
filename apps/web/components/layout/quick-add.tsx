@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { mutate } from "swr";
+import useSWR from "swr";
 import {
   CheckSquare,
   Receipt,
@@ -12,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { BudgetCategory } from "@wedding/shared";
 import { api } from "@/lib/api";
 import { useWedding } from "@/contexts/wedding";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -26,7 +28,6 @@ import { Input, Label, Select, Textarea, FieldError } from "@/components/ui/inpu
 import { Spinner } from "@/components/ui/empty";
 import { parseToMinor } from "@/lib/money";
 import {
-  DEFAULT_TASK_CATEGORIES,
   VENDOR_CATEGORIES,
   LOCATION_TYPES,
 } from "@wedding/shared";
@@ -153,7 +154,11 @@ function QuickTask({ visible, busy, onDone }: { visible: boolean; busy: boolean;
 function QuickExpense({ visible, busy, onDone, currency }: { visible: boolean; busy: boolean; onDone: Submit; currency: string }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState<string>(DEFAULT_TASK_CATEGORIES[0] ?? "Other");
+  const [categoryId, setCategoryId] = useState("");
+  const { data: budgetData } = useSWR<{ categories: BudgetCategory[] }>(
+    visible ? "/api/budget" : null,
+    (path: string) => api<{ categories: BudgetCategory[] }>(path),
+  );
   if (!visible) return null;
   return (
     <form
@@ -162,7 +167,7 @@ function QuickExpense({ visible, busy, onDone, currency }: { visible: boolean; b
         e.preventDefault();
         const minor = parseToMinor(amount);
         if (minor === null) return;
-        void onDone("/api/expenses", { name, estimatedMinor: minor }, ["/api/expenses", "/api/budget", "/api/dashboard"]);
+        void onDone("/api/expenses", { name, estimatedMinor: minor, categoryId: categoryId || undefined }, ["/api/expenses", "/api/budget", "/api/dashboard"]);
       }}
     >
       <div className="space-y-1">
@@ -176,9 +181,10 @@ function QuickExpense({ visible, busy, onDone, currency }: { visible: boolean; b
         </div>
         <div className="space-y-1">
           <Label htmlFor="q-expense-category">Category</Label>
-          <Select id="q-expense-category" value={category} onChange={(e) => setCategory(e.target.value)}>
-            {DEFAULT_TASK_CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+          <Select id="q-expense-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">None</option>
+            {(budgetData?.categories ?? []).map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </Select>
         </div>

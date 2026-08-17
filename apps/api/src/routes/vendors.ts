@@ -29,6 +29,7 @@ function serializeVendor(doc: Record<string, unknown>): VendorDTO {
     priceMinor: (doc.priceMinor as number | null) ?? undefined,
     status: doc.status as VendorDTO["status"],
     rating: (doc.rating as number | null) ?? undefined,
+    meetingDate: iso(doc.meetingDate as Date | null),
     notes: (doc.notes as string) || undefined,
     createdAt: iso(doc.createdAt as Date) as string,
     updatedAt: iso(doc.updatedAt as Date) as string,
@@ -81,6 +82,7 @@ router.post(
       priceMinor: input.priceMinor ?? null,
       status: input.status,
       rating: input.rating ?? null,
+      meetingDate: input.meetingDate ? new Date(input.meetingDate) : null,
       notes: input.notes ?? "",
     });
 
@@ -131,7 +133,11 @@ router.patch(
 
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) continue;
-      vendor.set(key, key === "website" ? cleanString(value as string) ?? "" : value);
+      if (key === "meetingDate") {
+        vendor.set("meetingDate", value ? new Date(value as string) : null);
+      } else {
+        vendor.set(key, key === "website" ? cleanString(value as string) ?? "" : value);
+      }
     }
     await vendor.save();
 

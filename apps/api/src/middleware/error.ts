@@ -37,9 +37,3 @@ export function asyncHandler(
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 }
-
-export function parseBody<T>(schema: { safeParse: (data: unknown) => { success: boolean; data?: T; error?: unknown } }, body: unknown): T {
-  const result = schema.safeParse(body);
-  if (!result.success) throw result.error as Error;
-  return result.data as T;
-}

@@ -95,6 +95,27 @@ router.post(
   }),
 );
 
+router.post(
+  "/:token/decline",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const authed = req as AuthedRequest;
+    const invitation = await Invitation.findOne({ token: req.params.token });
+    if (!invitation) throw new NotFoundError("This invitation doesn't exist.");
+    if (invitation.status !== "pending") {
+      throw new ValidationError("This invitation has already been used.");
+    }
+    if (invitation.email.toLowerCase() !== authed.user.email.toLowerCase()) {
+      throw new ForbiddenError(
+        "This invitation was sent to a different email address.",
+      );
+    }
+    invitation.status = "declined";
+    await invitation.save();
+    res.json({ ok: true });
+  }),
+);
+
 router.get(
   "/:token",
   requireAuth,

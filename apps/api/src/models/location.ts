@@ -16,6 +16,7 @@ const locationSchema = new Schema(
     estimatedCostMinor: { type: Number, default: null },
     actualCostMinor: { type: Number, default: null },
     status: { type: String, enum: LOCATION_STATUSES, default: "researching" },
+    visitDate: { type: Date, default: null },
     notes: { type: String, default: "" },
     images: { type: [String], default: [] },
     selectedVenue: { type: Boolean, default: false },

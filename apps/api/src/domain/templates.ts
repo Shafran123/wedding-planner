@@ -1,4 +1,5 @@
 import { TASK_TEMPLATES } from "@wedding/shared";
+import { startOfUtcDay } from "./dates.js";
 
 export interface GeneratedTask {
   title: string;
@@ -13,11 +14,7 @@ export function generateTemplateTasks(
   now: Date = new Date(),
 ): GeneratedTask[] {
   const wedding = new Date(weddingDate);
-  const todayStart = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-  );
+  const todayStart = startOfUtcDay(now);
 
   return TASK_TEMPLATES.map((template) => {
     const due = new Date(wedding);

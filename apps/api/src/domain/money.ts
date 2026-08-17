@@ -1,4 +1,5 @@
 import type { BudgetAlert, BudgetTotals, CategorySpend } from "@wedding/shared";
+import { startOfUtcDay } from "./dates.js";
 
 export interface BudgetCategoryInput {
   id: string;
@@ -117,11 +118,7 @@ export function paymentTotals(
   payments: PaymentInput[],
   now: Date = new Date(),
 ): { paidMinor: number; upcomingMinor: number; overdueMinor: number } {
-  const todayStart = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-  );
+  const todayStart = startOfUtcDay(now);
 
   let paidMinor = 0;
   let upcomingMinor = 0;

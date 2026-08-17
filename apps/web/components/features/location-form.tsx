@@ -38,6 +38,7 @@ const schema = z.object({
   actualInput: z.string().optional(),
   status: z.string().default("researching"),
   notes: z.string().optional(),
+  visitDate: z.string().optional(),
   parking: z.string().optional(),
   catering: z.string().optional(),
   decoration: z.string().optional(),
@@ -85,6 +86,7 @@ export function LocationFormDialog({
       actualInput: "",
       status: "researching",
       notes: "",
+      visitDate: "",
       parking: "",
       catering: "",
       decoration: "",
@@ -108,6 +110,7 @@ export function LocationFormDialog({
         actualInput: location?.actualCostMinor !== undefined ? String(location.actualCostMinor / 100) : "",
         status: location?.status ?? "researching",
         notes: location?.notes ?? "",
+        visitDate: location?.visitDate ? location.visitDate.slice(0, 10) : "",
         parking: location?.parking === undefined ? "" : location.parking ? "yes" : "no",
         catering: location?.catering === undefined ? "" : location.catering ? "yes" : "no",
         decoration: location?.decoration === undefined ? "" : location.decoration ? "yes" : "no",
@@ -155,6 +158,7 @@ export function LocationFormDialog({
         actualCostMinor: values.actualInput ? (parseToMinor(values.actualInput) ?? undefined) : undefined,
         status: values.status,
         notes: values.notes || undefined,
+        visitDate: values.visitDate || undefined,
         parking: triState(values.parking),
         catering: triState(values.catering),
         decoration: triState(values.decoration),
@@ -219,6 +223,10 @@ export function LocationFormDialog({
                   <option key={s} value={s}>{LOCATION_STATUS_LABELS[s]}</option>
                 ))}
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="l-visit">Visit date</Label>
+              <Input id="l-visit" type="date" {...register("visitDate")} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="l-estimated">Estimated cost</Label>

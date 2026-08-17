@@ -29,6 +29,7 @@ function serializeLocation(doc: Record<string, unknown>): LocationDTO {
     estimatedCostMinor: (doc.estimatedCostMinor as number | null) ?? undefined,
     actualCostMinor: (doc.actualCostMinor as number | null) ?? undefined,
     status: doc.status as LocationDTO["status"],
+    visitDate: iso(doc.visitDate as Date | null),
     notes: (doc.notes as string) || undefined,
     images: (doc.images as string[]) ?? [],
     selectedVenue: (doc.selectedVenue as boolean) ?? false,
@@ -86,6 +87,7 @@ router.post(
       estimatedCostMinor: input.estimatedCostMinor ?? null,
       actualCostMinor: input.actualCostMinor ?? null,
       status: input.status,
+      visitDate: input.visitDate ? new Date(input.visitDate) : null,
       notes: input.notes ?? "",
       images: input.images ?? [],
       parking: input.parking ?? null,
@@ -141,7 +143,9 @@ router.patch(
 
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) continue;
-      if (key === "website") {
+      if (key === "visitDate") {
+        location.set("visitDate", value ? new Date(value as string) : null);
+      } else if (key === "website") {
         location.set(key, cleanString(value as string) ?? "");
       } else {
         location.set(key, value);

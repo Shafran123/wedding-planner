@@ -24,6 +24,7 @@ import { NotFoundError } from "../errors.js";
 import { getCountdown } from "../domain/countdown.js";
 import { computeBudget, computeCategorySpend } from "../domain/money.js";
 import { computeProgress } from "../domain/progress.js";
+import { buildBudgetInput } from "../services/budget.js";
 import { completionPercent, isOverdue } from "../domain/taskLogic.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import { requireAuth, requireWedding } from "../middleware/auth.js";
@@ -48,7 +49,7 @@ router.get(
 
     const [
       wedding,
-      categories,
+      budgetInput,
       taskCategories,
       expenses,
       payments,
@@ -59,7 +60,7 @@ router.get(
       unread,
     ] = await Promise.all([
       Wedding.findById(authed.weddingId).lean(),
-      BudgetCategory.find({ weddingId: authed.weddingId }).lean(),
+      buildBudgetInput(authed.weddingId),
       TaskCategory.find({ weddingId: authed.weddingId }).lean(),
       Expense.find({ weddingId: authed.weddingId }).lean(),
       Payment.find({ weddingId: authed.weddingId }).lean(),
@@ -78,34 +79,8 @@ router.get(
     ]);
     if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
 
-    const categoryNames = new Map(categories.map((c) => [String(c._id), c.name]));
     const taskCategoryNames = new Map(taskCategories.map((c) => [String(c._id), c.name]));
     const memberNames = new Map(members.map((m) => [m.userId, m.displayName]));
-    const vendorNames = new Map<string, string>();
-    const expenseNames = new Map<string, string>();
-
-    const budgetInput = {
-      totalBudgetMinor: wedding.totalBudgetMinor,
-      categories: categories.map((c) => ({
-        id: String(c._id),
-        name: c.name,
-        plannedMinor: c.plannedMinor,
-      })),
-      expenses: expenses.map((e) => ({
-        id: String(e._id),
-        categoryId: e.categoryId ? String(e.categoryId) : undefined,
-        status: e.status,
-        estimatedMinor: e.estimatedMinor,
-        paymentStatus: e.paymentStatus,
-      })),
-      payments: payments.map((p) => ({
-        id: String(p._id),
-        expenseId: p.expenseId ? String(p.expenseId) : undefined,
-        status: p.status,
-        amountMinor: p.amountMinor,
-        dueDate: iso(p.dueDate) as string,
-      })),
-    };
 
     const budget = computeBudget(budgetInput);
     const categorySpend = computeCategorySpend(budgetInput);

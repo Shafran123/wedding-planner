@@ -1,5 +1,7 @@
 import type { NotificationType } from "@wedding/shared";
 import { Member, Notification } from "../models/index.js";
+import { buildBudgetInput } from "./budget.js";
+import { computeBudget } from "../domain/money.js";
 
 const DAY_MS = 86_400_000;
 
@@ -59,6 +61,16 @@ export async function maybeNotifyBudgetThresholds(
         : `You have used ${Math.round(percentUsed)}% of your wedding budget.`,
     exceptUserId: actorId,
   });
+}
+
+/** Recompute the budget after a payment changed and notify on threshold crossings. */
+export async function notifyBudgetAfterPaymentChange(
+  weddingId: string,
+  actorId: string,
+): Promise<void> {
+  const budgetInput = await buildBudgetInput(weddingId);
+  const budget = computeBudget(budgetInput);
+  await maybeNotifyBudgetThresholds(weddingId, budget.percentUsed, actorId);
 }
 
 export async function maybeNotifyEventUpcoming(

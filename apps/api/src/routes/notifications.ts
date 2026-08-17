@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Notification as NotificationDTO } from "@wedding/shared";
-import { Notification } from "../models/index.js";
+import { Notification, Task } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import { requireAuth, requireWedding } from "../middleware/auth.js";
@@ -33,18 +33,59 @@ router.get(
   requireWedding,
   asyncHandler(async (req, res) => {
     const authed = req as AuthedRequest;
-    const notifications = await Notification.find({
-      weddingId: authed.weddingId,
-      userId: authed.uid,
-    })
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-    const unread = notifications.filter((n) => !n.read).length;
-    res.json({
-      notifications: notifications.map(serializeNotification),
-      unread,
-    });
+    const [notifications, tasks] = await Promise.all([
+      Notification.find({
+        weddingId: authed.weddingId,
+        userId: authed.uid,
+      })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean(),
+      Task.find({ weddingId: authed.weddingId }).lean(),
+    ]);
+
+    // Task due-soon/overdue alerts are computed from live task data
+    // (spec: not persisted; no cron needed at MVP).
+    const now = new Date();
+    const synthetic: NotificationDTO[] = [];
+    for (const task of tasks) {
+      if (task.status !== "todo" && task.status !== "in_progress") continue;
+      if (!task.dueDate) continue;
+      const due = task.dueDate.getTime();
+      const todayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      const diffDays = Math.round((due - todayStart) / 86_400_000);
+      if (diffDays < 0) {
+        synthetic.push({
+          id: `task-overdue-${String(task._id)}`,
+          weddingId: authed.weddingId,
+          userId: authed.uid,
+          type: "task_overdue",
+          title: "Task overdue",
+          message: `"${task.title}" is overdue.`,
+          read: false,
+          createdAt: task.updatedAt.toISOString(),
+        });
+      } else if (diffDays <= 3) {
+        synthetic.push({
+          id: `task-due-${String(task._id)}`,
+          weddingId: authed.weddingId,
+          userId: authed.uid,
+          type: "task_due_soon",
+          title: "Task due soon",
+          message: `"${task.title}" is due ${diffDays === 0 ? "today" : `in ${diffDays} day${diffDays === 1 ? "" : "s"}`}.`,
+          read: false,
+          createdAt: task.updatedAt.toISOString(),
+        });
+      }
+    }
+
+    const all = [
+      ...synthetic,
+      ...notifications.map(serializeNotification),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const unread = notifications.filter((n) => !n.read).length + synthetic.length;
+    res.json({ notifications: all.slice(0, 50), unread });
   }),
 );
 

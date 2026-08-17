@@ -153,3 +153,29 @@ describe("payment recording", () => {
     expect(notification).toBeTruthy();
   });
 });
+
+describe("review fixes", () => {
+  it("notifies when a payment is created already-paid", async () => {
+    const { expenseId } = await setupBudget();
+
+    await request(app)
+      .post("/api/payments")
+      .set(A)
+      .send({ expenseId, amountMinor: 8_600_000, dueDate: "2026-10-01", status: "paid" });
+
+    const notification = await Notification.findOne({ type: "budget_exceeded" }).lean();
+    expect(notification).toBeTruthy();
+  });
+
+  it("does not count unpaid overdue payments toward the expense snapshot", async () => {
+    const { expenseId } = await setupBudget();
+
+    await request(app)
+      .post("/api/payments")
+      .set(A)
+      .send({ expenseId, amountMinor: 900_000, dueDate: "2020-01-01" });
+
+    const expense = await Expense.findById(expenseId).lean();
+    expect(expense?.paymentStatus).toBe("unpaid");
+  });
+});

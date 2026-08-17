@@ -39,6 +39,18 @@ export default function InvitePage() {
 
   if (loading || !user) return <PageLoader />;
 
+  const decline = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/api/invitations/${token}/decline`, { method: "POST" });
+      router.replace("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't decline the invitation.");
+      setBusy(false);
+    }
+  };
+
   const accept = async () => {
     setBusy(true);
     setError(null);
@@ -104,7 +116,7 @@ export default function InvitePage() {
             </p>
             {error && <p className="mt-3 text-sm font-medium text-red-700">{error}</p>}
             <div className="mt-6 flex justify-center gap-3">
-              <Button variant="outline" onClick={() => router.replace("/dashboard")}>
+              <Button variant="outline" onClick={() => void decline()} disabled={busy}>
                 Decline
               </Button>
               <Button variant="gold" onClick={accept} disabled={busy}>

@@ -16,8 +16,8 @@ import {
   isToday as isTodayFn,
   subMonths,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, CheckSquare, CreditCard, CalendarDays } from "lucide-react";
-import type { Event, Payment, Task } from "@wedding/shared";
+import { ChevronLeft, ChevronRight, CheckSquare, CreditCard, CalendarDays, Store, MapPin } from "lucide-react";
+import type { Event, Payment, Task, Vendor, Location } from "@wedding/shared";
 import { swrFetcher } from "@/lib/api";
 import { PageHeader } from "@/components/shared/page";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import { Card } from "@/components/ui/card";
 import { PageLoader, ErrorState } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
-type ItemKind = "task" | "payment" | "event";
+type ItemKind = "task" | "payment" | "event" | "appointment" | "visit";
 interface CalendarItem {
   id: string;
   kind: ItemKind;
@@ -39,6 +39,8 @@ const KIND_STYLES: Record<ItemKind, { dot: string; label: string; icon: React.Co
   task: { dot: "bg-gold", label: "Tasks", icon: CheckSquare },
   payment: { dot: "bg-rose", label: "Payments", icon: CreditCard },
   event: { dot: "bg-emerald-600", label: "Events", icon: CalendarDays },
+  appointment: { dot: "bg-sky-500", label: "Vendor meetings", icon: Store },
+  visit: { dot: "bg-violet-500", label: "Venue visits", icon: MapPin },
 };
 
 export default function CalendarPage() {
@@ -48,14 +50,18 @@ export default function CalendarPage() {
     task: true,
     payment: true,
     event: true,
+    appointment: true,
+    visit: true,
   });
 
   const { data: taskData, error: taskError, isLoading: taskLoading } = useSWR<{ tasks: Task[] }>("/api/tasks", swrFetcher);
   const { data: paymentData, error: paymentError, isLoading: paymentLoading } = useSWR<{ payments: Payment[] }>("/api/payments", swrFetcher);
   const { data: eventData, error: eventError, isLoading: eventLoading } = useSWR<{ events: Event[] }>("/api/events", swrFetcher);
+  const { data: vendorData, error: vendorError, isLoading: vendorLoading } = useSWR<{ vendors: Vendor[] }>("/api/vendors", swrFetcher);
+  const { data: locationData, error: locationError, isLoading: locationLoading } = useSWR<{ locations: Location[] }>("/api/locations", swrFetcher);
 
-  const isLoading = taskLoading || paymentLoading || eventLoading;
-  const error = taskError ?? paymentError ?? eventError;
+  const isLoading = taskLoading || paymentLoading || eventLoading || vendorLoading || locationLoading;
+  const error = taskError ?? paymentError ?? eventError ?? vendorError ?? locationError;
 
   const items = useMemo<CalendarItem[]>(() => {
     const list: CalendarItem[] = [];
@@ -74,8 +80,18 @@ export default function CalendarPage() {
         list.push({ id: e.id, kind: "event", title: e.name, date: e.date, href: `/events/${e.id}` });
       }
     }
+    if (filters.appointment) {
+      for (const v of vendorData?.vendors ?? []) {
+        if (v.meetingDate) list.push({ id: v.id, kind: "appointment", title: `Meeting: ${v.name}`, date: v.meetingDate, href: `/vendors/${v.id}` });
+      }
+    }
+    if (filters.visit) {
+      for (const l of locationData?.locations ?? []) {
+        if (l.visitDate) list.push({ id: l.id, kind: "visit", title: `Visit: ${l.name}`, date: l.visitDate, href: `/locations/${l.id}` });
+      }
+    }
     return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [taskData, paymentData, eventData, filters]);
+  }, [taskData, paymentData, eventData, vendorData, locationData, filters]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarItem[]>();

@@ -211,3 +211,25 @@ describe("permissions", () => {
     expect(tasks).toBeGreaterThan(0);
   });
 });
+
+describe("invitation decline", () => {
+  it("declining marks the invitation declined and blocks acceptance", async () => {
+    await setup();
+
+    const invite = await request(app)
+      .post("/api/invitations")
+      .set(authHeader("a", "owner@test.com", "Owner A"))
+      .send({ email: "decliner@test.com", role: "viewer" });
+    const token = invite.body.invitation.token as string;
+
+    const decline = await request(app)
+      .post(`/api/invitations/${token}/decline`)
+      .set(authHeader("d", "decliner@test.com", "Decliner"));
+    expect(decline.status).toBe(200);
+
+    const accept = await request(app)
+      .post(`/api/invitations/${token}/accept`)
+      .set(authHeader("d", "decliner@test.com", "Decliner"));
+    expect(accept.status).toBe(400);
+  });
+});

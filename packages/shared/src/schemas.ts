@@ -104,6 +104,7 @@ export const vendorSchema = z.object({
   priceMinor: optionalMoneyMinor,
   status: z.enum(VENDOR_STATUSES).default("researching"),
   rating: z.number().min(0).max(5).optional(),
+  meetingDate: z.string().optional().or(z.literal("")),
   notes: z.string().max(4000).optional().or(z.literal("")),
 });
 
@@ -122,6 +123,7 @@ export const locationSchema = z.object({
   estimatedCostMinor: optionalMoneyMinor,
   actualCostMinor: optionalMoneyMinor,
   status: z.enum(LOCATION_STATUSES).default("researching"),
+  visitDate: z.string().optional().or(z.literal("")),
   notes: z.string().max(4000).optional().or(z.literal("")),
   images: z.array(z.string().url()).max(20).default([]),
   parking: z.boolean().optional(),

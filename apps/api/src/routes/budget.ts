@@ -12,6 +12,7 @@ import {
 } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import { computeBudget, computeCategorySpend } from "../domain/money.js";
+import { buildBudgetInput } from "../services/budget.js";
 import { writeActivity } from "../services/activity.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import {
@@ -46,36 +47,12 @@ router.get(
   requireWedding,
   asyncHandler(async (req, res) => {
     const authed = req as AuthedRequest;
-    const [wedding, categories, expenses, payments] = await Promise.all([
+    const [wedding, categories, budgetInput] = await Promise.all([
       Wedding.findById(authed.weddingId).lean(),
       BudgetCategory.find({ weddingId: authed.weddingId }).sort({ name: 1 }).lean(),
-      Expense.find({ weddingId: authed.weddingId }).lean(),
-      Payment.find({ weddingId: authed.weddingId }).lean(),
+      buildBudgetInput(authed.weddingId),
     ]);
     if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
-
-    const budgetInput = {
-      totalBudgetMinor: wedding.totalBudgetMinor,
-      categories: categories.map((c) => ({
-        id: String(c._id),
-        name: c.name,
-        plannedMinor: c.plannedMinor,
-      })),
-      expenses: expenses.map((e) => ({
-        id: String(e._id),
-        categoryId: e.categoryId ? String(e.categoryId) : undefined,
-        status: e.status,
-        estimatedMinor: e.estimatedMinor,
-        paymentStatus: e.paymentStatus,
-      })),
-      payments: payments.map((p) => ({
-        id: String(p._id),
-        expenseId: p.expenseId ? String(p.expenseId) : undefined,
-        status: p.status,
-        amountMinor: p.amountMinor,
-        dueDate: iso(p.dueDate) as string,
-      })),
-    };
 
     const budget: BudgetTotals = computeBudget(budgetInput);
     const categorySpend = computeCategorySpend(budgetInput);

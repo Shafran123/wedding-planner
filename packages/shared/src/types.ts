@@ -156,6 +156,7 @@ export interface Vendor {
   priceMinor?: number;
   status: VendorStatus;
   rating?: number;
+  meetingDate?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -176,6 +177,7 @@ export interface Location {
   estimatedCostMinor?: number;
   actualCostMinor?: number;
   status: LocationStatus;
+  visitDate?: string;
   notes?: string;
   images: string[];
   selectedVenue?: boolean;
@@ -279,7 +281,6 @@ export interface Countdown {
   days: number;
   hours: number;
   minutes: number;
-  seconds: number;
   passed: boolean;
   label: string;
 }

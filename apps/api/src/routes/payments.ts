@@ -9,10 +9,9 @@ import {
   Wedding,
 } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
-import { computeBudget } from "../domain/money.js";
 import { writeActivity } from "../services/activity.js";
 import {
-  maybeNotifyBudgetThresholds,
+  notifyBudgetAfterPaymentChange,
   maybeNotifyPaymentDue,
 } from "../services/notifications.js";
 import type { AuthedRequest } from "../middleware/auth.js";
@@ -66,7 +65,7 @@ function serializePayment(
 async function recomputeExpenseSnapshot(expenseId: string): Promise<void> {
   const expense = await Expense.findById(expenseId);
   if (!expense) return;
-  const payments = await Payment.find({ expenseId, status: { $ne: "unpaid" } }).lean();
+  const payments = await Payment.find({ expenseId, status: "paid" }).lean();
   const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0);
   const expected = expense.estimatedMinor;
 
@@ -155,6 +154,9 @@ router.post(
     });
 
     await maybeNotifyPaymentDue(authed.weddingId, payment.toObject(), authed.uid);
+    if (payment.status === "paid") {
+      await notifyBudgetAfterPaymentChange(authed.weddingId, authed.uid);
+    }
 
     res.status(201).json({ payment: { id: String(payment._id) } });
   }),
@@ -237,41 +239,7 @@ router.post(
       message: `${authed.user.displayName} marked a payment as paid`,
     });
 
-    const [wedding, expenses, payments, categories] = await Promise.all([
-      Wedding.findById(authed.weddingId).lean(),
-      Expense.find({ weddingId: authed.weddingId }).lean(),
-      Payment.find({ weddingId: authed.weddingId }).lean(),
-      BudgetCategory.find({ weddingId: authed.weddingId }).lean(),
-    ]);
-    if (wedding) {
-      const budget = computeBudget({
-        totalBudgetMinor: wedding.totalBudgetMinor,
-        categories: categories.map((c) => ({
-          id: String(c._id),
-          name: c.name,
-          plannedMinor: c.plannedMinor,
-        })),
-        expenses: expenses.map((e) => ({
-          id: String(e._id),
-          categoryId: e.categoryId ? String(e.categoryId) : undefined,
-          status: e.status,
-          estimatedMinor: e.estimatedMinor,
-          paymentStatus: e.paymentStatus,
-        })),
-        payments: payments.map((p) => ({
-          id: String(p._id),
-          expenseId: p.expenseId ? String(p.expenseId) : undefined,
-          status: p.status,
-          amountMinor: p.amountMinor,
-          dueDate: iso(p.dueDate) as string,
-        })),
-      });
-      await maybeNotifyBudgetThresholds(
-        authed.weddingId,
-        budget.percentUsed,
-        authed.uid,
-      );
-    }
+    await notifyBudgetAfterPaymentChange(authed.weddingId, authed.uid);
 
     res.json({ payment: { id: String(payment._id), status: "paid" } });
   }),

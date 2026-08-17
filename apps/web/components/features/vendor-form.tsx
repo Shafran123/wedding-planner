@@ -34,6 +34,7 @@ const schema = z.object({
   priceInput: z.string().optional(),
   status: z.string().default("researching"),
   rating: z.string().optional(),
+  meetingDate: z.string().optional(),
   notes: z.string().optional(),
 });
 type FormValues = z.input<typeof schema>;
@@ -71,6 +72,7 @@ export function VendorFormDialog({
       priceInput: "",
       status: "researching",
       rating: "",
+      meetingDate: "",
       notes: "",
     },
   });
@@ -89,6 +91,7 @@ export function VendorFormDialog({
         priceInput: vendor?.priceMinor !== undefined ? String(vendor.priceMinor / 100) : "",
         status: vendor?.status ?? "researching",
         rating: vendor?.rating !== undefined ? String(vendor.rating) : "",
+        meetingDate: vendor?.meetingDate ? vendor.meetingDate.slice(0, 10) : "",
         notes: vendor?.notes ?? "",
       });
       setError(null);
@@ -111,6 +114,7 @@ export function VendorFormDialog({
         priceMinor: values.priceInput ? (parseToMinor(values.priceInput) ?? undefined) : undefined,
         status: values.status,
         rating: values.rating ? Number(values.rating) : undefined,
+        meetingDate: values.meetingDate || undefined,
         notes: values.notes || undefined,
       };
       if (vendor) {
@@ -185,6 +189,10 @@ export function VendorFormDialog({
             <div className="space-y-1.5">
               <Label htmlFor="v-rating">Rating (0–5)</Label>
               <Input id="v-rating" inputMode="decimal" placeholder="4.5" {...register("rating")} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="v-meeting">Meeting date</Label>
+              <Input id="v-meeting" type="date" {...register("meetingDate")} />
             </div>
           </div>
           <div className="space-y-1.5">

@@ -24,7 +24,8 @@ import {
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
 } from "@/lib/labels";
-import { ROLES, CURRENCIES, WEDDING_TYPES } from "@wedding/shared";
+import { ROLES, CURRENCIES, WEDDING_TYPES, invitationSchema } from "@wedding/shared";
+import { TZ_CHOICES } from "@/lib/timezones";
 import { relativeTime } from "@/lib/format";
 
 export default function SettingsPage() {
@@ -55,18 +56,53 @@ export default function SettingsPage() {
 
 function ProfileTab() {
   const { user } = useAuth();
+  const [name, setName] = useState(user?.displayName ?? "");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const saveName = async () => {
+    if (!user || !name.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { updateProfile, getClientAuth } = await import("@/lib/firebase");
+      const auth = getClientAuth();
+      if (!auth) throw new Error("Firebase is not configured.");
+      await updateProfile(auth.currentUser ?? user, { displayName: name.trim() });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't update your profile.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card className="max-w-lg">
       <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
       <CardContent>
-        <dl className="space-y-3 text-sm">
-          <div className="flex justify-between"><dt className="text-stone-warm">Name</dt><dd className="text-charcoal">{user?.displayName}</dd></div>
-          <div className="flex justify-between"><dt className="text-stone-warm">Email</dt><dd className="text-charcoal">{user?.email}</dd></div>
-          <div className="flex justify-between"><dt className="text-stone-warm">Provider</dt><dd className="text-charcoal">{user?.providerData[0]?.providerId === "google.com" ? "Google" : "Email & password"}</dd></div>
-        </dl>
-        <p className="mt-4 rounded-lg bg-parchment px-3 py-2 text-xs text-stone-warm">
-          Name, email, and password are managed by Firebase authentication.
-        </p>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="p-name">Name</Label>
+            <div className="flex gap-2">
+              <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Button variant="gold" onClick={() => void saveName()} disabled={busy || !name.trim()}>
+                {busy ? "Saving…" : "Save"}
+              </Button>
+            </div>
+          </div>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between"><dt className="text-stone-warm">Email</dt><dd className="text-charcoal">{user?.email}</dd></div>
+            <div className="flex justify-between"><dt className="text-stone-warm">Provider</dt><dd className="text-charcoal">{user?.providerData[0]?.providerId === "google.com" ? "Google" : "Email & password"}</dd></div>
+          </dl>
+          {saved && <p className="text-sm font-medium text-emerald-700">Saved ✓</p>}
+          {error && <p className="text-sm font-medium text-red-700">{error}</p>}
+          <p className="rounded-lg bg-parchment px-3 py-2 text-xs text-stone-warm">
+            Email and password are managed by Firebase authentication.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -82,6 +118,7 @@ const weddingSchema = z.object({
   totalBudgetInput: z.string().optional(),
   weddingType: z.string().optional(),
   location: z.string().max(200).optional(),
+  timezone: z.string().max(60),
 });
 type WeddingFormValues = z.input<typeof weddingSchema>;
 
@@ -106,6 +143,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
       totalBudgetInput: wedding ? String(wedding.totalBudgetMinor / 100) : "",
       weddingType: wedding?.weddingType ?? "",
       location: wedding?.location ?? "",
+      timezone: wedding?.timezone ?? "Asia/Dubai",
     },
   });
 
@@ -124,6 +162,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
           totalBudgetMinor: values.totalBudgetInput ? (parseToMinor(values.totalBudgetInput) ?? undefined) : undefined,
           weddingType: values.weddingType || undefined,
           location: values.location || undefined,
+          timezone: values.timezone,
         },
       });
       await refresh();
@@ -193,6 +232,14 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
                 <Label htmlFor="w-location">City / location</Label>
                 <Input id="w-location" {...register("location")} />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="w-timezone">Timezone</Label>
+                <Select id="w-timezone" {...register("timezone")}>
+                  {TZ_CHOICES.map((tz) => (
+                    <option key={tz} value={tz}>{tz}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </fieldset>
           {!canEdit && (
@@ -211,11 +258,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
   );
 }
 
-const inviteSchema = z.object({
-  email: z.string().email("Enter a valid email."),
-  role: z.string(),
-});
-type InviteFormValues = z.input<typeof inviteSchema>;
+type InviteFormValues = z.input<typeof invitationSchema>;
 
 function MembersTab({ canManage, canInvite }: { canManage: boolean; canInvite: boolean }) {
   const { data, isLoading } = useSWR<{ members: Member[] }>("/api/members", swrFetcher);
@@ -231,7 +274,7 @@ function MembersTab({ canManage, canInvite }: { canManage: boolean; canInvite: b
     reset,
     formState: { errors },
   } = useForm<InviteFormValues>({
-    resolver: zodResolver(inviteSchema),
+    resolver: zodResolver(invitationSchema),
     defaultValues: { email: "", role: "partner" },
   });
 
@@ -393,6 +436,17 @@ function MembersTab({ canManage, canInvite }: { canManage: boolean; canInvite: b
 
 function PreferencesTab() {
   const { wedding } = useWedding();
+  const [inAppOn, setInAppOn] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("wp:inapp-notifications") !== "off";
+  });
+
+  const toggle = (checked: boolean) => {
+    setInAppOn(checked);
+    window.localStorage.setItem("wp:inapp-notifications", checked ? "on" : "off");
+    window.dispatchEvent(new Event("wp:notif-prefs-changed"));
+  };
+
   return (
     <Card className="max-w-lg">
       <CardHeader><CardTitle>Preferences</CardTitle></CardHeader>
@@ -402,7 +456,13 @@ function PreferencesTab() {
             In-app notifications
             <span className="block text-xs text-stone-warm">Tasks due soon, payments due, budget alerts, upcoming events</span>
           </span>
-          <input type="checkbox" defaultChecked disabled className="h-4 w-4 accent-[#b3924e]" />
+          <input
+            type="checkbox"
+            checked={inAppOn}
+            onChange={(e) => toggle(e.target.checked)}
+            className="h-4 w-4 accent-[#b3924e]"
+            aria-label="In-app notifications"
+          />
         </label>
         <p className="rounded-lg bg-parchment px-3 py-2 text-xs text-stone-warm">
           Email and push notification controls are coming soon.

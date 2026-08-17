@@ -16,6 +16,7 @@ const vendorSchema = new Schema(
     priceMinor: { type: Number, default: null },
     status: { type: String, enum: VENDOR_STATUSES, default: "researching" },
     rating: { type: Number, min: 0, max: 5, default: null },
+    meetingDate: { type: Date, default: null },
     notes: { type: String, default: "" },
   },
   { timestamps: true },

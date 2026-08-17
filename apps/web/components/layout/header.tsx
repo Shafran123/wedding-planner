@@ -29,12 +29,22 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
+  const [prefsOn, setPrefsOn] = useState(true);
+
+  useEffect(() => {
+    const readPref = () =>
+      setPrefsOn(window.localStorage.getItem("wp:inapp-notifications") !== "off");
+    readPref();
+    window.addEventListener("wp:notif-prefs-changed", readPref);
+    return () => window.removeEventListener("wp:notif-prefs-changed", readPref);
+  }, []);
+
   const { data: notifData, mutate: mutateNotifs } = useSWR<{
     notifications: Notification[];
     unread: number;
-  }>("/api/notifications", swrFetcher, { refreshInterval: 60_000 });
+  }>(prefsOn ? "/api/notifications" : null, swrFetcher, { refreshInterval: 60_000 });
 
-  const unread = notifData?.unread ?? 0;
+  const unread = prefsOn ? (notifData?.unread ?? 0) : 0;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
