@@ -1,6 +1,8 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci && npm run build -w @wedding/api"
+# npm install (not npm ci): Railway's build cache mounts node_modules/.cache,
+# and npm ci's wholesale node_modules removal hits EBUSY on that mount.
+buildCommand = "npm install --no-audit --no-fund && npm run build -w @wedding/api"
 
 [deploy]
 startCommand = "npm run start -w @wedding/api"
