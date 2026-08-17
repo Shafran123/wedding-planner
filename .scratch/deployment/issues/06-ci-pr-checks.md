@@ -1,7 +1,11 @@
 # 06 — CI workflow: PR checks
 
-`Status: ready-for-agent`
-`Blocked by:` 01 (must live on GitHub to run), 02 (gate must be green).
+`Status: resolved`
+
+## Comments
+
+- `.github/workflows/ci.yml`: pull_request + push to main → lint, typecheck, build (web + api), vitest suite against a `mongo:7` service container (test DB is hardcoded to 127.0.0.1:27017, so no code change). Runtime tests (real Firebase creds) stay local-only, noted in a workflow comment.
+- Verified: first run on `main` passed end-to-end.
 
 ## Context
 
