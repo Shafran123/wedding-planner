@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWedding } from "@/contexts/wedding";
+import { VERSION_LABEL } from "@/lib/version";
 
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -74,6 +75,9 @@ export function Sidebar({ className }: { className?: string }) {
       </nav>
       <div className="border-t border-sand px-5 py-4">
         <p className="text-xs text-stone-warm">Plan your wedding. Enjoy the journey.</p>
+        <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-stone-warm/70">
+          {VERSION_LABEL}
+        </p>
       </div>
     </aside>
   );

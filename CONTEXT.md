@@ -85,3 +85,32 @@ The share of planning done: completed Tasks divided by total non-cancelled Tasks
 
 **Minor units**:
 The integer representation of money — AED 1,500.00 is stored as `150000`.
+
+## Operations
+
+**Environment**:
+A deployed instance of the system with its own infrastructure and secrets. Currently only **Production (prod)** exists; **Pre-production (pre-prod)** is a planned-but-unprovisioned mirror for rehearsing releases.
+_Avoid_: server, host (for the concept of an environment)
+
+**Release**:
+An immutable, tagged version of the codebase (`vX.Y.Z`) that may be deployed. Every merge to `main` produces a Release.
+_Avoid_: build, push (for the version concept)
+
+**Deployment**:
+Publishing a Release to an Environment (web → Vercel, API → Railway).
+_Avoid_: upload, ship
+
+**Preview**:
+An ephemeral Vercel deployment per pull request for review. Not a Deployment to an Environment.
+
+**Rollback**:
+Restoring an Environment to a previous Release, either via platform one-click or `git checkout vX.Y.Z` + redeploy.
+
+**Health Check**:
+`GET /health` on the API, reporting readiness of Mongo and Firebase plus the running version.
+
+**Smoke Test**:
+An automated post-Deployment probe proving sign-in, onboarding, and core pages work on the live Environment.
+
+**Version**:
+The `vX.Y.Z` (+ commit sha) identifier shown in the webapp footer and Settings → About, and reported by the API Health Check.

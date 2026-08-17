@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import useSWR, { mutate } from "swr";
 import { Plus, MapPin, Star, GitCompareArrows } from "lucide-react";
 import type { Location } from "@wedding/shared";
@@ -89,11 +90,16 @@ export default function LocationsPage() {
                 </span>
               )}
               {location.images.length > 0 && (
-                <img
-                  src={location.images[0]}
-                  alt=""
-                  className="mb-3 h-32 w-full rounded-xl object-cover"
-                />
+                <div className="relative mb-3 h-32 w-full overflow-hidden rounded-xl">
+                  <Image
+                    src={location.images[0]}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
               )}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

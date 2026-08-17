@@ -85,9 +85,7 @@ export default function OnboardingPage() {
           timezone: "Asia/Dubai",
         },
       });
-      // Hard navigation: guarantees a fresh /api/me (no stale SWR cache)
-      // and the layout guard therefore can't bounce back to this wizard.
-      window.location.assign("/dashboard");
+      router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "We couldn't create your wedding. Please try again.");
     } finally {

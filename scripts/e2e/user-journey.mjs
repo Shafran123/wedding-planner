@@ -5,7 +5,12 @@
  * filling the startup questions nothing happens".
  */
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
 import { signUpFirebase, WEB_URL } from "./helpers.mjs";
+
+const rootPkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
+const expectedFooter = `v${rootPkg.version} · Beta`;
+const expectedFull = `v${rootPkg.version}+dev`;
 
 const email = `e2e-journey-${Date.now()}@test.weddingplanner.local`;
 const password = "e2epass123!";
@@ -74,6 +79,24 @@ try {
   } else {
     console.log("RED-?: unexpected final url");
     process.exitCode = 1;
+  }
+
+  const footerText = await page.locator("aside").innerText();
+  if (!footerText.toUpperCase().includes(expectedFooter.toUpperCase())) {
+    console.log(`RED-V: sidebar version badge missing (expected "${expectedFooter}")`);
+    process.exitCode = 1;
+  } else {
+    console.log("GREEN-V: sidebar shows", expectedFooter);
+  }
+
+  await page.goto(`${WEB_URL}/settings`);
+  await page.getByRole("tab", { name: "About" }).click();
+  const aboutVisible = await page.getByText(expectedFull).isVisible();
+  if (!aboutVisible) {
+    console.log(`RED-About: Settings About missing version (expected "${expectedFull}")`);
+    process.exitCode = 1;
+  } else {
+    console.log("GREEN-About: Settings About shows", expectedFull);
   }
 } finally {
   console.log("=== event log ===");

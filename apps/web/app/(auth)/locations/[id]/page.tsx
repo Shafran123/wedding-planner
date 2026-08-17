@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { ArrowLeft, Pencil, Trash2, Navigation, MapPin } from "lucide-react";
@@ -104,7 +105,16 @@ export default function LocationDetailPage() {
       {location.images.length > 0 && (
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {location.images.slice(0, 6).map((url, i) => (
-            <img key={i} src={url} alt={`${location.name} photo ${i + 1}`} className="h-36 w-full rounded-xl object-cover" />
+            <div key={i} className="relative h-36 w-full overflow-hidden rounded-xl">
+              <Image
+                src={url}
+                alt={`${location.name} photo ${i + 1}`}
+                fill
+                sizes="(max-width: 640px) 50vw, 33vw"
+                className="object-cover"
+                unoptimized
+              />
+            </div>
           ))}
         </div>
       )}

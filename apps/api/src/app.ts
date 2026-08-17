@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import mongoose from "mongoose";
+import { version } from "../../../package.json";
 import { config } from "./config.js";
 import { errorHandler } from "./middleware/error.js";
 
@@ -53,7 +55,18 @@ export function createApp(): express.Express {
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, service: "wedding-planner-api" });
+    const mongoUp = mongoose.connection.readyState === 1;
+    const firebaseConfigured = Boolean(
+      process.env.FIREBASE_SERVICE_ACCOUNT_PATH || process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+    );
+    res.status(mongoUp ? 200 : 503).json({
+      status: mongoUp ? "ok" : "degraded",
+      service: "wedding-planner-api",
+      version,
+      sha: process.env.APP_SHA ?? "unknown",
+      mongo: mongoUp ? "up" : "down",
+      firebase: firebaseConfigured ? "configured" : "missing",
+    });
   });
 
   app.use("/api/me", meRouter);

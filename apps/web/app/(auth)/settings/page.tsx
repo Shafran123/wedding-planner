@@ -6,7 +6,7 @@ import useSWRInfinite from "swr/infinite";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Plus, UserMinus, Check, UserRound, Heart, Users, BellRing, ScrollText } from "lucide-react";
+import { Plus, UserMinus, Check, UserRound, Heart, Users, BellRing, ScrollText, Info } from "lucide-react";
 import type { Activity, Invitation, Member } from "@wedding/shared";
 import { api, swrFetcher } from "@/lib/api";
 import { useAuth } from "@/contexts/auth";
@@ -27,6 +27,7 @@ import {
 import { ROLES, CURRENCIES, WEDDING_TYPES, invitationSchema } from "@wedding/shared";
 import { TZ_CHOICES } from "@/lib/timezones";
 import { relativeTime } from "@/lib/format";
+import { FULL_VERSION, RELEASE_CHANNEL, APP_SHA, APP_ENVIRONMENT } from "@/lib/version";
 
 export default function SettingsPage() {
   const { role } = useWedding();
@@ -43,14 +44,44 @@ export default function SettingsPage() {
           <TabsTrigger value="members"><Users className="mr-1.5 h-3.5 w-3.5" /> Members</TabsTrigger>
           <TabsTrigger value="preferences"><BellRing className="mr-1.5 h-3.5 w-3.5" /> Preferences</TabsTrigger>
           <TabsTrigger value="activity"><ScrollText className="mr-1.5 h-3.5 w-3.5" /> Activity</TabsTrigger>
+          <TabsTrigger value="about"><Info className="mr-1.5 h-3.5 w-3.5" /> About</TabsTrigger>
         </TabsList>
         <TabsContent value="profile"><ProfileTab /></TabsContent>
         <TabsContent value="wedding"><WeddingTab canEdit={role === "owner"} /></TabsContent>
         <TabsContent value="members"><MembersTab canManage={canManageMembers} canInvite={canManageMembers || role === "partner"} /></TabsContent>
         <TabsContent value="preferences"><PreferencesTab /></TabsContent>
         <TabsContent value="activity"><ActivityTab /></TabsContent>
+        <TabsContent value="about"><AboutTab /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function AboutTab() {
+  return (
+    <Card className="max-w-lg">
+      <CardHeader><CardTitle>About</CardTitle></CardHeader>
+      <CardContent>
+        <dl className="space-y-3 text-sm">
+          <div className="flex items-center justify-between">
+            <dt className="text-stone-warm">Version</dt>
+            <dd className="font-mono text-charcoal">{FULL_VERSION}</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-stone-warm">Release channel</dt>
+            <dd><Badge>{RELEASE_CHANNEL}</Badge></dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-stone-warm">Build</dt>
+            <dd className="font-mono text-charcoal">{APP_SHA}</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-stone-warm">Environment</dt>
+            <dd className="text-charcoal">{APP_ENVIRONMENT}</dd>
+          </div>
+        </dl>
+      </CardContent>
+    </Card>
   );
 }
 
