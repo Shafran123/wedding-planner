@@ -3,6 +3,17 @@ import cors from "cors";
 import helmet from "helmet";
 import { config } from "./config.js";
 import { errorHandler } from "./middleware/error.js";
+
+const PRIVATE_ORIGIN =
+  /^https?:\/\/(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
+
+function isAllowedOrigin(origin: string): boolean {
+  if (config.corsOrigin === "*") return true;
+  if (config.corsOrigin.split(",").includes(origin)) return true;
+  // Local development from other devices on the same network (e.g. phone testing).
+  if (process.env.NODE_ENV !== "production" && PRIVATE_ORIGIN.test(origin)) return true;
+  return false;
+}
 import onboardingRouter from "./routes/onboarding.js";
 import meRouter from "./routes/me.js";
 import weddingRouter from "./routes/wedding.js";
@@ -29,7 +40,13 @@ export function createApp(): express.Express {
   app.use(helmet());
   app.use(
     cors({
-      origin: config.corsOrigin.split(","),
+      origin: (origin, callback) => {
+        if (!origin || isAllowedOrigin(origin)) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
       credentials: true,
     }),
   );

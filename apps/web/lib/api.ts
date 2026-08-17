@@ -1,6 +1,20 @@
 "use client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const CONFIGURED_API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+function resolveApiBase(): string {
+  if (CONFIGURED_API) return CONFIGURED_API;
+  if (typeof window !== "undefined") {
+    const { hostname } = window.location;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      // Served over a LAN IP (e.g. phone testing) — assume the API shares the host.
+      return `http://${hostname}:4000`;
+    }
+  }
+  return "http://localhost:4000";
+}
+
+const API_BASE = resolveApiBase();
 
 export class ApiError extends Error {
   constructor(

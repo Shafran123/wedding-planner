@@ -11,3 +11,6 @@ coverage/
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# Firebase service account keys (secrets — never commit)
+firebase/*.json
