@@ -1,4 +1,6 @@
-import * as admin from "firebase-admin";
+// Default import: under tsx (the API runtime), CJS modules surface their API
+// on the default export — namespace imports only expose { default } there.
+import admin from "firebase-admin";
 import { AppError } from "./errors.js";
 
 let app: admin.app.App | null = null;

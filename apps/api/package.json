@@ -8,7 +8,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:runtime": "node --import tsx --test \"tests/runtime/*.test.ts\""
   },
   "dependencies": {
     "@wedding/shared": "*",

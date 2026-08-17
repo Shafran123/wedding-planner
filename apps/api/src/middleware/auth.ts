@@ -1,7 +1,12 @@
 import type { NextFunction, Request, Response } from "express";
 import type { Role } from "@wedding/shared";
 import { verifyIdToken } from "../firebaseAuth.js";
-import { ForbiddenError, NotFoundError, UnauthorizedError } from "../errors.js";
+import {
+  AppError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from "../errors.js";
 import { Member, User } from "../models/index.js";
 
 export interface AuthedRequest extends Request {
@@ -60,7 +65,13 @@ export async function requireAuth(
     let decoded: { uid: string; email?: string; name?: string; picture?: string };
     try {
       decoded = await verifyIdToken(token);
-    } catch {
+    } catch (err) {
+      if (err instanceof AppError) {
+        // Server-side misconfiguration (e.g. Firebase not configured) is not
+        // the user's fault — surface it as 500, never as an expired session.
+        throw err;
+      }
+      console.error("[auth] id token verification failed:", err);
       throw new UnauthorizedError("Your session has expired. Please sign in again.");
     }
     const user = await syncUser(decoded);
