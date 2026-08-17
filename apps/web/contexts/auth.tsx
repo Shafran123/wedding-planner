@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -66,12 +67,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const firebaseConfigured = isFirebaseConfigured();
 
+  // The API token getter must never hold a stale user. Child components
+  // (e.g. layout SWR fetches) run their effects before this provider's,
+  // so a per-render closure would race the restored session after a hard
+  // reload — sending requests with no token (401 → forced sign-out).
+  const userRef = useRef<User | null>(null);
+  userRef.current = user;
+
   useEffect(() => {
     configureApi({
       getToken: async () => {
-        if (!user) return null;
+        const current = userRef.current;
+        if (!current) return null;
         try {
-          return await user.getIdToken();
+          return await current.getIdToken();
         } catch {
           return null;
         }
@@ -81,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (auth) void signOut(auth);
       },
     });
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     const auth = getClientAuth();

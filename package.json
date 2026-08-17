@@ -14,6 +14,10 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test -w @wedding/api && npm run test:runtime -w @wedding/api",
-    "test:watch": "npm run test:watch -w @wedding/api"
+    "test:watch": "npm run test:watch -w @wedding/api",
+    "test:e2e": "node scripts/e2e/auth-reload.mjs && node scripts/e2e/onboarding-flow.mjs && node scripts/e2e/user-journey.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
   }
 }

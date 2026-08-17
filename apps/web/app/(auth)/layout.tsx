@@ -15,7 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  const { data: me } = useSWR<{ hasWedding: boolean } | null>(
+  const { data: me, isValidating } = useSWR<{ hasWedding: boolean } | null>(
     user ? "/api/me" : null,
     swrFetcher,
   );
@@ -26,11 +26,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, router]);
 
+  // Only act on settled data — never redirect off a stale/unvalidated cache
+  // entry, which bounced users back to onboarding right after they finished it.
   useEffect(() => {
-    if (user && me && !me.hasWedding) {
+    if (user && me && !isValidating && !me.hasWedding) {
       router.replace("/onboarding");
     }
-  }, [user, me, router]);
+  }, [user, me, isValidating, router]);
 
   if (loading || !user || !me) {
     return <PageLoader />;
