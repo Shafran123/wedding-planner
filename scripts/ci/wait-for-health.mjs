@@ -11,17 +11,17 @@ if (!raw) {
 }
 
 let base;
-try {
-  base = raw
-    .trim()
-    .replace(/^RAILWAY_URL=/, "")
-    .replace(/^["']|["']$/g, "")
-    .replace(/\/$/, "");
-  new URL(base);
-} catch {
-  console.error(`RAILWAY_URL is not a valid URL (received "${raw.trim().slice(0, 80)}…"). ` +
-    "Set it to just the bare https://… URL with no quotes.");
-  process.exit(1);
+{
+  const match = raw.match(/https?:\/\/[^\s"'`\\]+/);
+  if (match) {
+    base = match[0].replace(/\/+$/, "");
+  } else {
+    console.error(
+      "RAILWAY_URL has no http(s) URL in it. Re-set the secret to just the bare URL, e.g.\n" +
+      "  gh secret set RAILWAY_URL -R Shafran123/wedding-planner --body 'https://your-service.up.railway.app'",
+    );
+    process.exit(1);
+  }
 }
 
 const deadline = Date.now() + 5 * 60_000;
