@@ -70,14 +70,10 @@ try {
     console.log(`NOTE: API runs ${health.version} (pkg ${rootPkg.version}) — Railway deploy may lag the release.`);
   }
 
-  const logoutBtn = page.getByRole("button", { name: /sign out|log out|logout/i }).first();
-  if (await logoutBtn.isVisible().catch(() => false)) {
-    await logoutBtn.click();
-    await page.waitForURL("**/login", { timeout: 15_000 });
-    check("logout → /login", true);
-  } else {
-    check("logout button found", false, "no logout button visible on settings");
-  }
+  await page.getByRole("button", { name: "Profile menu" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.waitForURL("**/login", { timeout: 15_000 });
+  check("logout → /login", true);
 
   await page.fill("#email", email);
   await page.fill("#password", password);

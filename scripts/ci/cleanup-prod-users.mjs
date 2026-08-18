@@ -25,7 +25,7 @@ if (users.length) {
 }
 
 await mongoose.connect(MONGODB_URI);
-const { Wedding, Task, BudgetCategory, TaskCategory, Expense, Payment, Notification, Activity, Member, User } = await import("../apps/api/src/models/index.js");
+const { Wedding, Task, BudgetCategory, TaskCategory, Expense, Payment, Notification, Activity, Member, User } = await import("../../apps/api/src/models/index.js");
 const weddings = await Wedding.find({ weddingName: { $in: ["Smoke Wedding", "Journey Wedding", "E2E Wedding", "E2E Onboarding"] } }).lean();
 for (const w of weddings) {
   await Promise.all([

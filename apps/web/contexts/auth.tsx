@@ -41,6 +41,7 @@ export function friendlyAuthError(err: unknown): string {
   if (err instanceof FirebaseError) {
     switch (err.code) {
       case "auth/invalid-credential":
+      case "auth/invalid-login-credentials":
       case "auth/wrong-password":
       case "auth/user-not-found":
         return "The email or password is incorrect.";
