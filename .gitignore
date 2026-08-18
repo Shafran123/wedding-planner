@@ -14,3 +14,5 @@ coverage/
 
 # Firebase service account keys (secrets — never commit)
 firebase/*.json
+.vercel
+.env*
