@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 
 import { formatMinor, formatDate } from "@/lib/format";
 import { PaymentFormDialog } from "@/components/features/payment-form";
+import { MoneyDisplay } from "@/components/shared/money-display";
 import { cn } from "@/lib/utils";
 
 export default function PaymentsPage() {
@@ -39,9 +40,9 @@ export default function PaymentsPage() {
   const upcoming = payments.filter((p) => p.status === "unpaid");
   const overdue = payments.filter((p) => p.status === "overdue");
 
-  const paidTotal = paid.reduce((sum, p) => sum + p.amountMinor, 0);
-  const upcomingTotal = upcoming.reduce((sum, p) => sum + p.amountMinor, 0);
-  const overdueTotal = overdue.reduce((sum, p) => sum + p.amountMinor, 0);
+  const paidTotal = paid.reduce((sum, p) => sum + (p.baseAmountMinor ?? p.amountMinor), 0);
+  const upcomingTotal = upcoming.reduce((sum, p) => sum + (p.baseAmountMinor ?? p.amountMinor), 0);
+  const overdueTotal = overdue.reduce((sum, p) => sum + (p.baseAmountMinor ?? p.amountMinor), 0);
 
   const refresh = () =>
     Promise.all([mutate("/api/payments"), mutate("/api/budget"), mutate("/api/dashboard"), mutate("/api/notifications")]);
@@ -137,9 +138,12 @@ export default function PaymentsPage() {
                             {payment.paymentDate ? ` · paid ${formatDate(payment.paymentDate)}` : ""}
                           </p>
                         </div>
-                        <span className="tabular-nums text-sm font-semibold text-charcoal">
-                          {formatMinor(payment.amountMinor, currency)}
-                        </span>
+                        <MoneyDisplay
+                          minor={payment.amountMinor}
+                          record={payment}
+                          baseCurrency={currency}
+                          className="tabular-nums text-sm font-semibold text-charcoal"
+                        />
                         {payment.status !== "paid" && canFinance && (
                           <Button
                             size="sm"

@@ -14,6 +14,7 @@ import {
 import type { DashboardData } from "@wedding/shared";
 import { swrFetcher } from "@/lib/api";
 import { formatMinor, formatDate, relativeDue, relativeTime } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageLoader } from "@/components/ui/empty";
@@ -271,9 +272,12 @@ export default function DashboardPage() {
                         </p>
                         <p className="text-xs text-stone-warm">{relativeDue(payment.dueDate)}</p>
                       </div>
-                      <span className="tabular-nums text-sm font-semibold text-charcoal">
-                        {formatMinor(payment.amountMinor, currency)}
-                      </span>
+                      <MoneyDisplay
+                        minor={payment.amountMinor}
+                        record={payment}
+                        baseCurrency={currency}
+                        className="tabular-nums text-sm font-semibold text-charcoal"
+                      />
                     </li>
                   ))}
                 </ul>

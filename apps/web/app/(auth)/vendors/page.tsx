@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/ui/empty";
 import { VendorStatusBadge } from "@/components/shared/badges";
 import { formatMinor } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
 import { VENDOR_CATEGORIES } from "@wedding/shared";
 import { VendorFormDialog } from "@/components/features/vendor-form";
 import { cn } from "@/lib/utils";
@@ -128,9 +129,16 @@ export default function VendorsPage() {
                 <VendorStatusBadge status={vendor.status} />
               </div>
               <div className="mt-4 flex items-center justify-between text-sm">
-                <span className="tabular-nums font-semibold text-charcoal">
-                  {vendor.priceMinor !== undefined ? formatMinor(vendor.priceMinor, currency) : "—"}
-                </span>
+                {vendor.priceMinor !== undefined ? (
+                  <MoneyDisplay
+                    minor={vendor.priceMinor}
+                    record={vendor}
+                    baseCurrency={currency}
+                    className="tabular-nums font-semibold text-charcoal"
+                  />
+                ) : (
+                  <span>—</span>
+                )}
                 {vendor.rating !== undefined && (
                   <span className="text-xs text-stone-warm">★ {vendor.rating.toFixed(1)}</span>
                 )}
