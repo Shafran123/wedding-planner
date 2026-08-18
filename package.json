@@ -1,7 +1,7 @@
 {
   "name": "wedding-planner",
   "private": true,
-  "version": "0.0.9",
+  "version": "0.0.10",
   "engines": {
     "node": ">=20.9"
   },
