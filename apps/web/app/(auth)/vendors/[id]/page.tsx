@@ -21,7 +21,7 @@ import { PageLoader, ErrorState } from "@/components/ui/empty";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { VendorFormDialog } from "@/components/features/vendor-form";
 import { VendorStatusBadge } from "@/components/shared/badges";
-import { formatMinor, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { MoneyDisplay } from "@/components/shared/money-display";
 
 function instagramUrl(handle: string | undefined): string | undefined {

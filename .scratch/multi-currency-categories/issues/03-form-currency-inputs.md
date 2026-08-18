@@ -1,6 +1,6 @@
 # 03 — Currency + rate inputs in money forms
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 `Blocked by: 02`
 
@@ -20,3 +20,7 @@ Every form that takes money must let the user pick AED or LKR and, for LKR, edit
 - LKR expense with prefilled rate saves correctly; next LKR entry prefills the updated last-used rate.
 - AED entries show no rate field.
 - Live preview shows the converted base amount and updates as the rate changes.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.

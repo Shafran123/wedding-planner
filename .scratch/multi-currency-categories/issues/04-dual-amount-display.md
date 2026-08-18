@@ -1,6 +1,6 @@
 # 04 — Dual-amount display everywhere
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 `Blocked by: 02`
 
@@ -19,3 +19,7 @@ Foreign-currency records display primary in their currency with the base equival
 
 - An LKR expense shows `Rs 10,000` with `≈ AED 122` beneath it; an AED expense shows only `AED …`.
 - All totals remain in the base currency and match ticket 02's server sums.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.

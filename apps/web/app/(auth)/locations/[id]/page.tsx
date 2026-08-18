@@ -15,7 +15,6 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { LocationFormDialog } from "@/components/features/location-form";
 import { LocationStatusBadge } from "@/components/shared/badges";
 import { LOCATION_TYPE_LABELS } from "@/lib/labels";
-import { formatMinor } from "@/lib/format";
 import { MoneyDisplay } from "@/components/shared/money-display";
 
 function mapsUrl(location: Location): string | undefined {

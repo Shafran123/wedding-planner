@@ -1,6 +1,6 @@
 # 05 — Base currency change with re-denomination
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 `Blocked by: 02`
 
@@ -22,3 +22,7 @@ Changing the wedding's base currency (AED ↔ LKR) must convert every stored amo
 - AED → LKR at 80 (1 AED = 80 LKR) converts an AED 500 expense into `currency="AED"`, `rate=80`, `baseEstimatedMinor=40000`; planned categories and total budget scale by 80.
 - Changing without a rate returns 400 and nothing is modified.
 - Budget/dashboard totals are consistent after re-denomination.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.

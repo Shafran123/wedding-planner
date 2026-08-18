@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import { budgetUpdateSchema, budgetCategorySchema } from "@wedding/shared";
 import type {
   BudgetCategory as BudgetCategoryDTO,
@@ -61,7 +62,7 @@ router.get(
         Expense.aggregate<{ _id: unknown; n: number }>([
           {
             $match: {
-              weddingId: authed.weddingId,
+              weddingId: new mongoose.Types.ObjectId(authed.weddingId),
               deletedAt: null,
               categoryId: { $ne: null },
             },

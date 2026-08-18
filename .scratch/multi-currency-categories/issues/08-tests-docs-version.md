@@ -1,6 +1,6 @@
 # 08 — Tests, docs, version bump
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 `Blocked by: 02, 05, 06, 07`
 
@@ -20,3 +20,7 @@ Close-out ticket: cover the new behavior with tests, update docs, bump the versi
 
 - `pnpm test` / `pnpm typecheck` / lint all green in CI.
 - Smoke against a deployed preview: LKR expense flows end-to-end; category rename visible on an item.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.
