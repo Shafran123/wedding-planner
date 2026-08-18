@@ -11,7 +11,23 @@ if (!service) {
   process.exit(0);
 }
 
+const token = (process.env.RAILWAY_TOKEN ?? "").trim();
+console.log(`RAILWAY_TOKEN length=${token.length}`);
+if (!token) {
+  console.error("RAILWAY_TOKEN is empty.");
+  process.exit(1);
+}
+
+const who = spawnSync("npx", ["--yes", "@railway/cli", "whoami"], {
+  encoding: "utf8",
+  env: { ...process.env, RAILWAY_TOKEN: token },
+});
+console.log("[whoami]", who.stdout?.trim() || who.stderr?.trim() || "(no output)");
+
 const args = ["--yes", "@railway/cli", "up", "-d", "-c", "-s", service, "-e", "production"];
 console.log(`[deploy] npx ${args.join(" ")}`);
-const res = spawnSync("npx", args, { stdio: "inherit", env: process.env });
+const res = spawnSync("npx", args, {
+  stdio: "inherit",
+  env: { ...process.env, RAILWAY_TOKEN: token },
+});
 process.exit(res.status ?? 1);
