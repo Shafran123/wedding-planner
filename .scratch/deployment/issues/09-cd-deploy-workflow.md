@@ -1,7 +1,12 @@
 # 09 — CD workflow: release + deploy
 
-`Status: ready-for-agent`
-`Blocked by:` 01, 03, 04, 05, 07, 08.
+`Status: resolved`
+
+## Comments
+
+- `scripts/ci/bump-version.mjs` (patch bump, prints version) + `scripts/ci/wait-for-health.mjs` (polls `$RAILWAY_URL/health`, skips when the variable is unset).
+- `.github/workflows/deploy.yml`: guard on `chore(release):` commits → bump + tag `vX.Y.Z` + push → wait for Railway auto-deploy health → Vercel `pull/build/deploy --prebuilt --prod` with `NEXT_PUBLIC_APP_VERSION/SHA` → GitHub release note. `permissions: contents: write` for the bot push.
+- Verified: scripts pass `node --check`; bump+restore test ran (0.0.1 → 0.0.2 → restored). End-to-end verified on the next merge to `main`.
 
 ## Context
 

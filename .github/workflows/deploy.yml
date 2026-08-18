@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release-and-deploy:
+    runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Bump patch version + tag
+        id: bump
+        run: |
+          VERSION=$(node scripts/ci/bump-version.mjs)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): v$VERSION"
+          git tag "v$VERSION"
+          git push origin main --tags
+
+      - name: Wait for API deploy + health (Railway auto-deploys on push)
+        env:
+          RAILWAY_URL: ${{ vars.RAILWAY_URL }}
+        run: node scripts/ci/wait-for-health.mjs
+
+      - name: Deploy web (Vercel)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_APP_VERSION: ${{ steps.bump.outputs.version }}
+          NEXT_PUBLIC_APP_SHA: ${{ github.sha }}
+        run: |
+          npx --yes vercel pull --yes --environment=production
+          npx --yes vercel build --prod
+          npx --yes vercel deploy --prebuilt --prod
+
+      - name: Publish release note
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ steps.bump.outputs.version }}" --generate-notes --title "v${{ steps.bump.outputs.version }}"

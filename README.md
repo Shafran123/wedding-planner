@@ -79,9 +79,54 @@ Tests mock only the Firebase token-verification boundary; everything else runs a
 
 ## Deploying
 
-- Web: Vercel (`NEXT_PUBLIC_API_URL` → your API origin, Firebase web vars set in Vercel).
-- API: any Node host; set `MONGODB_URI`, `CORS_ORIGIN`, and the Firebase service-account env vars. Never ship `serviceAccount.json`; never commit secrets.
-- Before production: deploy `storage.rules`, review CORS origin, remove development data.
+```
+Browser ──► Vercel (web, apps/web) ──► Railway (API, apps/api) ──► MongoDB Atlas M0
+                  │                           │
+                  └─────────────── Firebase Auth + Storage (shared project)
+```
+
+### Pipeline
+
+- **Every PR**: GitHub Actions (`ci.yml`) runs lint, typecheck, build, and tests (MongoDB service container). Runtime tests stay local-only.
+- **Every merge to `main`**: `deploy.yml` bumps the patch version (root `package.json`), commits `chore(release): vX.Y.Z`, tags `vX.Y.Z` (rollback points), waits for Railway's auto-deploy to report healthy at `/health`, deploys the web to Vercel with the version injected, and publishes a GitHub release.
+- **Versioning**: single source of truth is root `package.json`. The webapp shows `vX.Y.Z · Beta` in the sidebar footer and `vX.Y.Z+<sha>` in Settings → About. The API reports it on `/health`.
+- **Rollback**: redeploy a previous tag on the platform, or `git checkout vX.Y.Z` + redeploy. Vercel/Railway also offer one-click "rollback to previous deploy".
+
+### Environment variables
+
+| Where | Variable | Notes |
+| --- | --- | --- |
+| Railway (API) | `MONGODB_URI` | Atlas URI **with database name**, e.g. `mongodb+srv://user:pass@cluster…/wedding-planner` |
+| Railway | `CORS_ORIGIN` | The Vercel app URL (comma-separated list supported) |
+| Railway | `FIREBASE_SERVICE_ACCOUNT_JSON` | One-line service-account JSON; never commit |
+| Railway | `NODE_ENV` | `production` — set it as **deploy-only** so builds keep devDependencies |
+| Vercel (web) | `NEXT_PUBLIC_API_URL` | The Railway URL, e.g. `https://<service>.up.railway.app` |
+| Vercel | `NEXT_PUBLIC_FIREBASE_*` | 6 web-config keys from the Firebase console |
+| GitHub Secrets | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `RAILWAY_TOKEN` | CI deploys |
+| GitHub Variables | `RAILWAY_URL` | Enables the API health gate: `gh variable set RAILWAY_URL <url>` |
+
+### Backup and restore (manual, monthly)
+
+```bash
+mongodump --uri "mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/wedding-planner" --out backup-$(date +%F)
+# restore:
+mongorestore --uri "mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/wedding-planner" backup-YYYY-MM-DD/
+```
+
+### Prod smoke test
+
+```bash
+PROD_URL=https://<app>.vercel.app PROD_API_URL=https://<api>.up.railway.app \
+  node scripts/e2e/prod-smoke.mjs
+# cleanup throwaway users/weddings afterwards:
+FIREBASE_SERVICE_ACCOUNT_JSON='<json>' MONGODB_URI='<atlas uri>' \
+  node --import tsx scripts/ci/cleanup-prod-users.mjs
+```
+
+### Adding a custom domain or a pre-prod environment later
+
+- **Domain**: add it in Vercel + Railway, update `CORS_ORIGIN` and `NEXT_PUBLIC_API_URL`, redeploy.
+- **Pre-prod**: duplicate the Railway service and Atlas cluster under a staging project, add a `preview` Vercel environment with its own `NEXT_PUBLIC_API_URL`, and give it a **separate Firebase project** so auth data doesn't mix with prod.
 
 ## Roadmap (deferred)
 
@@ -89,4 +134,4 @@ Drag-and-drop timeline editing · keyboard shortcuts · Arabic UI (i18n-ready) �
 
 ## Domain docs
 
-`CONTEXT.md` (glossary), `docs/adr/` (0001 MongoDB, 0002 Firebase Auth, 0003 integer minor units), and the spec + tickets in `.scratch/wedding-planner/`.
+`CONTEXT.md` (glossary), `docs/adr/` (0001 MongoDB, 0002 Firebase Auth, 0003 integer minor units, 0004 hosting architecture), and specs + tickets in `.scratch/`.

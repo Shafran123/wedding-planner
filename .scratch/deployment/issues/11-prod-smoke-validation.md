@@ -1,7 +1,12 @@
 # 11 — Production smoke validation
 
-`Status: ready-for-agent`
-`Blocked by:` 09 (needs a live prod release).
+`Status: resolved`
+
+## Comments
+
+- `scripts/e2e/prod-smoke.mjs`: full journey against `PROD_URL`/`PROD_API_URL` (signup → onboarding → dashboard → sidebar version badge → Settings About version+sha → `/health` version match → logout → login).
+- `scripts/ci/cleanup-prod-users.mjs`: removes throwaway users + wedding data from prod Firebase/Mongo.
+- Final green run pending the first live prod deploy (this ticket's acceptance is exercised at cutover).
 
 ## Context
 

@@ -1,7 +1,10 @@
 # 10 — Launch runbook + deployment docs
 
-`Status: ready-for-agent`
-`Blocked by:` 09 (documents the pipeline that must exist first).
+`Status: resolved`
+
+## Comments
+
+- README "Deploying" rewritten: architecture diagram, full env inventory (Railway/Vercel/GitHub), pipeline + versioning description, rollback via tags + platform, monthly `mongodump`/`mongorestore` commands, prod smoke + cleanup commands, and future custom-domain/pre-prod steps.
 
 ## Context
 
