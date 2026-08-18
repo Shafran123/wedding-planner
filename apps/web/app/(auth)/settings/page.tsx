@@ -145,6 +145,7 @@ const weddingSchema = z.object({
   partnerTwoName: z.string().max(80).optional(),
   weddingDate: z.string().min(1),
   currency: z.string().length(3),
+  rate: z.string().optional(),
   estimatedGuestCount: z.string().optional(),
   totalBudgetInput: z.string().optional(),
   weddingType: z.string().optional(),
@@ -161,6 +162,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<WeddingFormValues>({
     resolver: zodResolver(weddingSchema),
@@ -170,6 +172,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
       partnerTwoName: wedding?.partnerTwoName ?? "",
       weddingDate: wedding?.weddingDate ? wedding.weddingDate.slice(0, 10) : "",
       currency: wedding?.currency ?? "AED",
+      rate: "",
       estimatedGuestCount: wedding?.estimatedGuestCount !== undefined ? String(wedding.estimatedGuestCount) : "",
       totalBudgetInput: wedding ? String(wedding.totalBudgetMinor / 100) : "",
       weddingType: wedding?.weddingType ?? "",
@@ -178,9 +181,31 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
     },
   });
 
+  const currentBase = wedding?.currency ?? "AED";
+  const selectedCurrency = watch("currency");
+  const currencyChanged = selectedCurrency !== currentBase;
+  const oldLkrRate = wedding?.rates?.["LKR"];
+  const oldAedRate = wedding?.rates?.["AED"];
+  const suggestedRate =
+    currentBase === "AED" && selectedCurrency === "LKR"
+      ? oldLkrRate
+        ? 1 / oldLkrRate
+        : undefined
+      : currentBase === "LKR" && selectedCurrency === "AED"
+        ? oldAedRate
+        : undefined;
+
   const onSubmit = async (values: WeddingFormValues) => {
     setError(null);
     try {
+      const rateNum = Number(values.rate);
+      if (
+        values.currency !== currentBase &&
+        (!Number.isFinite(rateNum) || rateNum <= 0)
+      ) {
+        setError("Enter an exchange rate to convert existing amounts.");
+        return;
+      }
       await api("/api/wedding", {
         method: "PATCH",
         body: {
@@ -189,6 +214,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
           partnerTwoName: values.partnerTwoName || undefined,
           weddingDate: new Date(`${values.weddingDate}T12:00:00`).toISOString(),
           currency: values.currency,
+          rate: values.currency !== currentBase ? rateNum : undefined,
           estimatedGuestCount: values.estimatedGuestCount ? Number(values.estimatedGuestCount) : undefined,
           totalBudgetMinor: values.totalBudgetInput ? (parseToMinor(values.totalBudgetInput) ?? undefined) : undefined,
           weddingType: values.weddingType || undefined,
@@ -242,6 +268,27 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
                   ))}
                 </Select>
               </div>
+              {currencyChanged && (
+                <div className="space-y-1.5 rounded-lg border border-gold/40 bg-gold-soft/40 p-3">
+                  <Label htmlFor="w-rate">
+                    Rate: 1 {currentBase} = ? {selectedCurrency}
+                  </Label>
+                  <Input
+                    id="w-rate"
+                    inputMode="decimal"
+                    placeholder={
+                      suggestedRate !== undefined
+                        ? String(Number(suggestedRate.toFixed(6)))
+                        : "0.000000"
+                    }
+                    {...register("rate")}
+                  />
+                  <p className="text-xs text-stone-warm">
+                    All amounts, category plans, and the total budget will be
+                    converted with this rate.
+                  </p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="w-guests">Estimated guests</Label>
                 <Input id="w-guests" inputMode="numeric" {...register("estimatedGuestCount")} />
