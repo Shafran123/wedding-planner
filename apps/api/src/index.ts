@@ -22,6 +22,12 @@ async function connectWithRetry(): Promise<void> {
 
 async function main(): Promise<void> {
   const app = createApp();
+  try {
+    const mongoHost = new URL(config.mongoUri).hostname;
+    console.log(`[api] config: port=${config.port} mongoHost=${mongoHost}`);
+  } catch {
+    console.log("[api] config: port=", config.port, "mongoUri=<unparseable>");
+  }
   app.listen(config.port, () => {
     console.log(`[api] wedding-planner API listening on http://localhost:${config.port}`);
   });
