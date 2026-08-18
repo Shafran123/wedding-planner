@@ -6,7 +6,7 @@ import useSWRInfinite from "swr/infinite";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Plus, UserMinus, Check, UserRound, Heart, Users, BellRing, ScrollText, Info } from "lucide-react";
+import { Plus, UserMinus, Check, UserRound, Heart, Users, BellRing, ScrollText, Info, Tags } from "lucide-react";
 import type { Activity, Invitation, Member } from "@wedding/shared";
 import { api, swrFetcher } from "@/lib/api";
 import { useAuth } from "@/contexts/auth";
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListSkeleton } from "@/components/ui/empty";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { CategoriesManager } from "@/components/features/categories-manager";
 import {
   ROLE_LABELS,
   ROLE_DESCRIPTIONS,
@@ -42,6 +43,7 @@ export default function SettingsPage() {
           <TabsTrigger value="profile"><UserRound className="mr-1.5 h-3.5 w-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="wedding"><Heart className="mr-1.5 h-3.5 w-3.5" /> Wedding</TabsTrigger>
           <TabsTrigger value="members"><Users className="mr-1.5 h-3.5 w-3.5" /> Members</TabsTrigger>
+          <TabsTrigger value="categories"><Tags className="mr-1.5 h-3.5 w-3.5" /> Categories</TabsTrigger>
           <TabsTrigger value="preferences"><BellRing className="mr-1.5 h-3.5 w-3.5" /> Preferences</TabsTrigger>
           <TabsTrigger value="activity"><ScrollText className="mr-1.5 h-3.5 w-3.5" /> Activity</TabsTrigger>
           <TabsTrigger value="about"><Info className="mr-1.5 h-3.5 w-3.5" /> About</TabsTrigger>
@@ -49,6 +51,7 @@ export default function SettingsPage() {
         <TabsContent value="profile"><ProfileTab /></TabsContent>
         <TabsContent value="wedding"><WeddingTab canEdit={role === "owner"} /></TabsContent>
         <TabsContent value="members"><MembersTab canManage={canManageMembers} canInvite={canManageMembers || role === "partner"} /></TabsContent>
+        <TabsContent value="categories"><CategoriesManager /></TabsContent>
         <TabsContent value="preferences"><PreferencesTab /></TabsContent>
         <TabsContent value="activity"><ActivityTab /></TabsContent>
         <TabsContent value="about"><AboutTab /></TabsContent>
