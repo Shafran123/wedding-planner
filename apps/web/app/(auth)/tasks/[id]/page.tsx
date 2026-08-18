@@ -14,6 +14,7 @@ import { PriorityBadge, TaskStatusBadge } from "@/components/shared/badges";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TaskFormDialog } from "@/components/features/task-form";
 import { formatMinor, formatDate } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -119,7 +120,7 @@ export default function TaskDetailPage() {
                 <dt className="text-xs font-semibold uppercase tracking-wider text-stone-warm">Estimated cost</dt>
                 <dd className="mt-1 text-charcoal">
                   {task.estimatedCostMinor !== undefined
-                    ? formatMinor(task.estimatedCostMinor, wedding?.currency)
+                    ? <MoneyDisplay inline minor={task.estimatedCostMinor} record={{ currency: task.currency, baseMinor: task.baseEstimatedCostMinor }} baseCurrency={wedding?.currency ?? "AED"} />
                     : "—"}
                 </dd>
               </div>
@@ -127,7 +128,7 @@ export default function TaskDetailPage() {
                 <dt className="text-xs font-semibold uppercase tracking-wider text-stone-warm">Actual cost</dt>
                 <dd className="mt-1 text-charcoal">
                   {task.actualCostMinor !== undefined
-                    ? formatMinor(task.actualCostMinor, wedding?.currency)
+                    ? <MoneyDisplay inline minor={task.actualCostMinor} record={{ currency: task.currency, baseMinor: task.baseActualCostMinor }} baseCurrency={wedding?.currency ?? "AED"} />
                     : "—"}
                 </dd>
               </div>

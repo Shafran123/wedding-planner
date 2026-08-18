@@ -16,6 +16,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { PaymentStatusBadge } from "@/components/shared/badges";
 import { formatMinor, formatDate } from "@/lib/format";
 import { ExpenseFormDialog } from "@/components/features/expense-form";
+import { MoneyDisplay } from "@/components/shared/money-display";
 
 export default function ExpensesPage() {
   const router = useRouter();
@@ -33,7 +34,9 @@ export default function ExpensesPage() {
   const canFinance = role === "owner" || role === "partner";
   const currency = wedding?.currency ?? "AED";
   const expenses = useMemo(() => data?.expenses ?? [], [data]);
-  const committed = expenses.filter((e) => e.status === "active").reduce((sum, e) => sum + e.estimatedMinor, 0);
+  const committed = expenses
+    .filter((e) => e.status === "active")
+    .reduce((sum, e) => sum + (e.baseEstimatedMinor ?? e.estimatedMinor), 0);
 
   const confirmDelete = async () => {
     if (!deleting) return;
@@ -106,12 +109,22 @@ export default function ExpensesPage() {
                   </p>
                 </div>
                 <div className="hidden text-right sm:block">
-                  <p className="tabular-nums text-sm font-semibold text-charcoal">
-                    {formatMinor(expense.actualMinor ?? expense.estimatedMinor, currency)}
-                  </p>
+                  <MoneyDisplay
+                    minor={expense.actualMinor ?? expense.estimatedMinor}
+                    record={expense}
+                    baseCurrency={currency}
+                    className="tabular-nums text-sm font-semibold text-charcoal"
+                  />
                   {expense.actualMinor !== undefined && (
                     <p className="text-xs text-stone-warm">
-                      est. {formatMinor(expense.estimatedMinor, currency)}
+                      est.{" "}
+                      <MoneyDisplay
+                        minor={expense.estimatedMinor}
+                        record={expense}
+                        baseCurrency={currency}
+                        inline
+                        className="font-medium"
+                      />
                     </p>
                   )}
                 </div>

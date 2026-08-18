@@ -23,6 +23,29 @@ export function formatMinorPlain(minor: number): string {
   }).format(major);
 }
 
+export interface MoneyRecordLike {
+  currency?: string | null;
+  baseMinor?: number | null;
+}
+
+/**
+ * Formats an amount in its stored currency with the base-currency equivalent
+ * as an optional secondary string. Returns primary in the record's currency
+ * (or the base when the record has none), secondary only when they differ.
+ */
+export function formatMoneyPair(
+  minor: number | null | undefined,
+  record: MoneyRecordLike | null | undefined,
+  baseCurrency: string,
+): { primary: string; secondary: string | null } {
+  const currency = record?.currency || baseCurrency;
+  const primary = formatMinor(minor, currency);
+  if (currency === baseCurrency) return { primary, secondary: null };
+  const base = record?.baseMinor ?? minor;
+  if (base === null || base === undefined) return { primary, secondary: null };
+  return { primary, secondary: `≈ ${formatMinor(base, baseCurrency)}` };
+}
+
 export function formatDate(iso: string | undefined | null): string {
   if (!iso) return "—";
   return format(new Date(iso), "d MMM yyyy");

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/ui/empty";
 import { LocationStatusBadge } from "@/components/shared/badges";
 import { formatMinor } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
 import { LOCATION_TYPE_LABELS } from "@/lib/labels";
 import { LocationFormDialog } from "@/components/features/location-form";
 import { cn } from "@/lib/utils";
@@ -114,9 +115,12 @@ export default function LocationsPage() {
                 <LocationStatusBadge status={location.status} />
               </div>
               {location.estimatedCostMinor !== undefined && (
-                <p className="mt-3 text-sm font-semibold tabular-nums text-charcoal">
-                  {formatMinor(location.estimatedCostMinor, currency)}
-                </p>
+                <MoneyDisplay
+                  minor={location.estimatedCostMinor}
+                  record={{ currency: location.currency, baseMinor: location.baseEstimatedCostMinor }}
+                  baseCurrency={currency}
+                  className="mt-3 text-sm font-semibold tabular-nums text-charcoal"
+                />
               )}
             </Link>
           ))}
@@ -162,7 +166,7 @@ function VenueComparison({
   onClose: () => void;
 }) {
   const rows: { label: string; render: (v: Location) => React.ReactNode }[] = [
-    { label: "Price", render: (v) => (v.estimatedCostMinor !== undefined ? formatMinor(v.estimatedCostMinor, currency) : "—") },
+    { label: "Price", render: (v) => (v.estimatedCostMinor !== undefined ? <MoneyDisplay inline minor={v.estimatedCostMinor} record={{ currency: v.currency, baseMinor: v.baseEstimatedCostMinor }} baseCurrency={currency} /> : "—") },
     { label: "Capacity", render: (v) => v.capacity ?? "—" },
     { label: "Location", render: (v) => v.address ?? "—" },
     { label: "Parking", render: (v) => v.parking },

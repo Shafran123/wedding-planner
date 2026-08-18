@@ -22,6 +22,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { VendorFormDialog } from "@/components/features/vendor-form";
 import { VendorStatusBadge } from "@/components/shared/badges";
 import { formatMinor, formatDate } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
 
 function instagramUrl(handle: string | undefined): string | undefined {
   if (!handle) return undefined;
@@ -153,7 +154,7 @@ export default function VendorDetailPage() {
                 <div className="flex justify-between"><dt className="text-stone-warm">Contact</dt><dd className="text-charcoal">{vendor.contactName}</dd></div>
               )}
               {vendor.priceMinor !== undefined && (
-                <div className="flex justify-between"><dt className="text-stone-warm">Price</dt><dd className="font-semibold text-charcoal">{formatMinor(vendor.priceMinor, currency)}</dd></div>
+                <div className="flex justify-between"><dt className="text-stone-warm">Price</dt><dd className="text-right font-semibold text-charcoal"><MoneyDisplay minor={vendor.priceMinor} record={vendor} baseCurrency={currency} /></dd></div>
               )}
               {vendor.address && (
                 <div className="flex justify-between"><dt className="text-stone-warm">Address</dt><dd className="text-right text-charcoal">{vendor.address}</dd></div>
@@ -183,9 +184,12 @@ export default function VendorDetailPage() {
                 {payments.map((p) => (
                   <li key={p.id} className="flex items-center justify-between py-2 text-sm">
                     <span className="text-charcoal">Due {formatDate(p.dueDate)}</span>
-                    <span className="tabular-nums font-medium text-charcoal">
-                      {formatMinor(p.amountMinor, currency)}
-                    </span>
+                    <MoneyDisplay
+                      minor={p.amountMinor}
+                      record={p}
+                      baseCurrency={currency}
+                      className="tabular-nums font-medium text-charcoal"
+                    />
                   </li>
                 ))}
               </ul>

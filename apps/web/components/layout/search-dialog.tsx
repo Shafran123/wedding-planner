@@ -21,7 +21,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { relativeDue, formatMinor } from "@/lib/format";
+import { relativeDue } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
+import { useWedding } from "@/contexts/wedding";
 import { Spinner } from "@/components/ui/empty";
 
 interface SearchIndex {
@@ -59,6 +61,8 @@ export function SearchDialog({
 }) {
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState<SearchIndex | null>(null);
+  const { wedding } = useWedding();
+  const baseCurrency = wedding?.currency ?? "AED";
 
   useEffect(() => {
     if (!open) {
@@ -168,9 +172,9 @@ export function SearchDialog({
                         group.key === "tasks"
                           ? relativeDue((item as Task).dueDate)
                           : group.key === "expenses"
-                            ? formatMinor((item as Expense).estimatedMinor)
+                            ? <MoneyDisplay inline minor={(item as Expense).estimatedMinor} record={item as Expense} baseCurrency={baseCurrency} />
                             : group.key === "payments"
-                              ? formatMinor((item as Payment).amountMinor)
+                              ? <MoneyDisplay inline minor={(item as Payment).amountMinor} record={item as Payment} baseCurrency={baseCurrency} />
                               : group.key === "events"
                                 ? new Date((item as Event).date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                                 : group.key === "notes"

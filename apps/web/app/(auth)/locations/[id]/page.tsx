@@ -16,6 +16,7 @@ import { LocationFormDialog } from "@/components/features/location-form";
 import { LocationStatusBadge } from "@/components/shared/badges";
 import { LOCATION_TYPE_LABELS } from "@/lib/labels";
 import { formatMinor } from "@/lib/format";
+import { MoneyDisplay } from "@/components/shared/money-display";
 
 function mapsUrl(location: Location): string | undefined {
   if (location.latitude !== undefined && location.longitude !== undefined) {
@@ -134,7 +135,7 @@ export default function LocationDetailPage() {
                 <div className="flex justify-between"><dt className="text-stone-warm">Capacity</dt><dd className="text-charcoal">{location.capacity} guests</dd></div>
               )}
               {location.estimatedCostMinor !== undefined && (
-                <div className="flex justify-between"><dt className="text-stone-warm">Estimated cost</dt><dd className="font-semibold text-charcoal">{formatMinor(location.estimatedCostMinor, currency)}</dd></div>
+                <div className="flex justify-between"><dt className="text-stone-warm">Estimated cost</dt><dd className="text-right font-semibold text-charcoal"><MoneyDisplay minor={location.estimatedCostMinor} record={{ currency: location.currency, baseMinor: location.baseEstimatedCostMinor }} baseCurrency={currency} /></dd></div>
               )}
               {location.contactName && (
                 <div className="flex justify-between"><dt className="text-stone-warm">Contact</dt><dd className="text-charcoal">{location.contactName}{location.contactPhone ? ` · ${location.contactPhone}` : ""}</dd></div>
