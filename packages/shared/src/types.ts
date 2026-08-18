@@ -73,6 +73,7 @@ export interface TaskCategory {
   id: string;
   weddingId: string;
   name: string;
+  taskCount?: number;
   createdAt: string;
 }
 
@@ -81,6 +82,7 @@ export interface BudgetCategory {
   weddingId: string;
   name: string;
   plannedMinor: number;
+  expenseCount?: number;
   createdAt: string;
 }
 
