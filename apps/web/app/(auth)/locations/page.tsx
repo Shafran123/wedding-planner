@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/ui/empty";
 import { LocationStatusBadge } from "@/components/shared/badges";
-import { formatMinor } from "@/lib/format";
 import { MoneyDisplay } from "@/components/shared/money-display";
 import { LOCATION_TYPE_LABELS } from "@/lib/labels";
 import { LocationFormDialog } from "@/components/features/location-form";

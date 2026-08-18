@@ -1,6 +1,6 @@
 # 01 — Shared currency constants
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 ## Context
 
@@ -17,3 +17,7 @@ Multi-currency scope is AED + LKR only (spec D1). `packages/shared/src/constants
 
 - `pnpm typecheck` clean across apps and packages.
 - Onboarding and Settings currency selects show exactly AED and LKR.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.

@@ -1,6 +1,6 @@
 # 06 — Category CRUD API (rename, delete, usage counts)
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 ## Context
 
@@ -22,3 +22,7 @@ Budget and task categories must be renameable and deletable by any member; delet
 - Renaming a category updates it everywhere (items render the new name).
 - Deleting an in-use category returns 409 with a clear message; deleting an unused one removes it.
 - Duplicate names (case-insensitive) rejected on create and rename.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.

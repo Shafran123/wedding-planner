@@ -13,7 +13,7 @@ import { PageLoader, ErrorState } from "@/components/ui/empty";
 import { PriorityBadge, TaskStatusBadge } from "@/components/shared/badges";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TaskFormDialog } from "@/components/features/task-form";
-import { formatMinor, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { MoneyDisplay } from "@/components/shared/money-display";
 
 export default function TaskDetailPage() {

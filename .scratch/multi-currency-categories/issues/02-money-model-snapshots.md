@@ -1,6 +1,6 @@
 # 02 — Money model: per-record currency, rate, base snapshots
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 `Blocked by: 01`
 
@@ -24,3 +24,7 @@ Every money-bearing record gains `currency`, `rate`, and base-snapshot fields; t
 - Wedding `rates.LKR` updated after the first LKR entry.
 - Budget/dashboard totals and payment status match hand-computed base sums.
 - Existing AED data unchanged after backfill.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.

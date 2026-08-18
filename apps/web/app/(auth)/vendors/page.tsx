@@ -11,7 +11,6 @@ import { PageHeader } from "@/components/shared/page";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/ui/empty";
 import { VendorStatusBadge } from "@/components/shared/badges";
-import { formatMinor } from "@/lib/format";
 import { MoneyDisplay } from "@/components/shared/money-display";
 import { VENDOR_CATEGORIES } from "@wedding/shared";
 import { VendorFormDialog } from "@/components/features/vendor-form";

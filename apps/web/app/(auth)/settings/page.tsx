@@ -5,7 +5,7 @@ import useSWR, { mutate } from "swr";
 import useSWRInfinite from "swr/infinite";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Plus, UserMinus, Check, UserRound, Heart, Users, BellRing, ScrollText, Info, Tags } from "lucide-react";
 import type { Activity, Invitation, Member } from "@wedding/shared";
 import { api, swrFetcher } from "@/lib/api";
@@ -165,7 +165,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors },
   } = useForm<WeddingFormValues>({
     resolver: zodResolver(weddingSchema),
@@ -185,7 +185,7 @@ function WeddingTab({ canEdit }: { canEdit: boolean }) {
   });
 
   const currentBase = wedding?.currency ?? "AED";
-  const selectedCurrency = watch("currency");
+  const selectedCurrency = useWatch({ control, name: "currency" });
   const currencyChanged = selectedCurrency !== currentBase;
   const oldLkrRate = wedding?.rates?.["LKR"];
   const oldAedRate = wedding?.rates?.["AED"];

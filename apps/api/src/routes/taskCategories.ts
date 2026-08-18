@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import { categoryNameSchema } from "@wedding/shared";
 import type { TaskCategory as TaskCategoryDTO } from "@wedding/shared";
 import { Task, TaskCategory } from "../models/index.js";
@@ -45,7 +46,7 @@ router.get(
       Task.aggregate<{ _id: unknown; n: number }>([
         {
           $match: {
-            weddingId: authed.weddingId,
+            weddingId: new mongoose.Types.ObjectId(authed.weddingId),
             categoryId: { $ne: null },
           },
         },

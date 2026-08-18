@@ -84,7 +84,15 @@ Days, hours, and minutes until the wedding date, computed in the Wedding's timez
 The share of planning done: completed Tasks divided by total non-cancelled Tasks.
 
 **Minor units**:
-The integer representation of money — AED 1,500.00 is stored as `150000`.
+The integer representation of money — AED 1,500.00 is stored as `150000`. A money record also stores its entry currency, the rate used, and the converted Base-currency amount.
+
+**Base currency**:
+The Wedding's reporting currency (AED or LKR). Budget totals, category plans, and dashboard money are always computed in it.
+_Avoid_: primary currency, home currency
+
+**Exchange rate**:
+A manually entered conversion factor (1 unit of an amount's currency = X units of the Base currency), stored on each money record at entry time. The Wedding remembers the last rate used per currency and prefills it.
+_Avoid_: FX rate, conversion fee
 
 ## Operations
 

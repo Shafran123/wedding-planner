@@ -1,6 +1,6 @@
 # 07 — Settings: Categories tab
 
-`Status: ready-for-agent`
+`Status: resolved`
 
 `Blocked by: 06`
 
@@ -20,3 +20,7 @@ Members manage budget and task categories from Settings (spec D10).
 
 - Add/rename/delete works for both category types; locked categories cannot be deleted.
 - Items elsewhere (tasks, expenses) reflect renames after refresh.
+
+## Comments
+
+- Implemented on `feature/multi-currency-categories`; lint, typecheck and tests green.
