@@ -21,28 +21,28 @@ describe("computeBudget", () => {
           id: "e1",
           categoryId: "c1",
           status: "active",
-          estimatedMinor: 3_000_000,
+          baseEstimatedMinor: 3_000_000,
           paymentStatus: "partial",
         },
         {
           id: "e2",
           categoryId: "c2",
           status: "active",
-          estimatedMinor: 2_000_000,
+          baseEstimatedMinor: 2_000_000,
           paymentStatus: "unpaid",
         },
         {
           id: "e3",
           categoryId: "c1",
           status: "cancelled",
-          estimatedMinor: 500_000,
+          baseEstimatedMinor: 500_000,
           paymentStatus: "unpaid",
         },
       ],
       payments: [
-        { id: "p1", expenseId: "e1", status: "paid", amountMinor: 2_000_000, dueDate: "2026-01-01" },
-        { id: "p2", expenseId: "e1", status: "unpaid", amountMinor: 1_000_000, dueDate: "2026-06-01" },
-        { id: "p3", expenseId: "e2", status: "paid", amountMinor: 800_000, dueDate: "2026-02-01" },
+        { id: "p1", expenseId: "e1", status: "paid", baseAmountMinor: 2_000_000, dueDate: "2026-01-01" },
+        { id: "p2", expenseId: "e1", status: "unpaid", baseAmountMinor: 1_000_000, dueDate: "2026-06-01" },
+        { id: "p3", expenseId: "e2", status: "paid", baseAmountMinor: 800_000, dueDate: "2026-02-01" },
       ],
     });
 
@@ -58,26 +58,26 @@ describe("computeBudget", () => {
     const base = {
       categories: [],
       expenses: [],
-      payments: [] as { id: string; expenseId?: string; status: string; amountMinor: number; dueDate: string }[],
+      payments: [] as { id: string; expenseId?: string; status: string; baseAmountMinor: number; dueDate: string }[],
     };
     const at80 = computeBudget({
       totalBudgetMinor: 10_000_000,
       ...base,
-      payments: [{ id: "p", status: "paid", amountMinor: 8_000_000, dueDate: "2026-01-01" }],
+      payments: [{ id: "p", status: "paid", baseAmountMinor: 8_000_000, dueDate: "2026-01-01" }],
     });
     expect(at80.alerts.map((a) => a.level)).toEqual(["warning"]);
 
     const at90 = computeBudget({
       totalBudgetMinor: 10_000_000,
       ...base,
-      payments: [{ id: "p", status: "paid", amountMinor: 9_000_000, dueDate: "2026-01-01" }],
+      payments: [{ id: "p", status: "paid", baseAmountMinor: 9_000_000, dueDate: "2026-01-01" }],
     });
     expect(at90.alerts.map((a) => a.level)).toEqual(["warning", "critical"]);
 
     const at100 = computeBudget({
       totalBudgetMinor: 10_000_000,
       ...base,
-      payments: [{ id: "p", status: "paid", amountMinor: 10_000_000, dueDate: "2026-01-01" }],
+      payments: [{ id: "p", status: "paid", baseAmountMinor: 10_000_000, dueDate: "2026-01-01" }],
     });
     expect(at100.alerts.map((a) => a.level)).toEqual(["warning", "critical", "exceeded"]);
   });
@@ -87,7 +87,7 @@ describe("computeBudget", () => {
       totalBudgetMinor: 0,
       categories: [],
       expenses: [],
-      payments: [{ id: "p", status: "paid", amountMinor: 100, dueDate: "2026-01-01" }],
+      payments: [{ id: "p", status: "paid", baseAmountMinor: 100, dueDate: "2026-01-01" }],
     });
     expect(result.percentUsed).toBe(0);
     expect(result.remainingMinor).toBe(-100);
@@ -102,12 +102,12 @@ describe("computeCategorySpend", () => {
         { id: "c2", name: "Catering", plannedMinor: 2_000_000 },
       ],
       expenses: [
-        { id: "e1", categoryId: "c1", status: "active", estimatedMinor: 800_000, paymentStatus: "paid" },
-        { id: "e2", categoryId: "c2", status: "active", estimatedMinor: 1_000_000, paymentStatus: "partial" },
+        { id: "e1", categoryId: "c1", status: "active", baseEstimatedMinor: 800_000, paymentStatus: "paid" },
+        { id: "e2", categoryId: "c2", status: "active", baseEstimatedMinor: 1_000_000, paymentStatus: "partial" },
       ],
       payments: [
-        { id: "p1", expenseId: "e1", status: "paid", amountMinor: 920_000, dueDate: "2026-01-01" },
-        { id: "p2", expenseId: "e2", status: "paid", amountMinor: 900_000, dueDate: "2026-01-01" },
+        { id: "p1", expenseId: "e1", status: "paid", baseAmountMinor: 920_000, dueDate: "2026-01-01" },
+        { id: "p2", expenseId: "e2", status: "paid", baseAmountMinor: 900_000, dueDate: "2026-01-01" },
       ],
     });
 
@@ -122,12 +122,12 @@ describe("computeCategorySpend", () => {
     const result = computeCategorySpend({
       categories: [{ id: "c1", name: "Venue", plannedMinor: 3_000_000 }],
       expenses: [
-        { id: "e1", categoryId: "c1", status: "active", estimatedMinor: 3_000_000, paymentStatus: "unpaid" },
-        { id: "e2", categoryId: "c1", status: "cancelled", estimatedMinor: 9_000_000, paymentStatus: "unpaid" },
+        { id: "e1", categoryId: "c1", status: "active", baseEstimatedMinor: 3_000_000, paymentStatus: "unpaid" },
+        { id: "e2", categoryId: "c1", status: "cancelled", baseEstimatedMinor: 9_000_000, paymentStatus: "unpaid" },
       ],
       payments: [
-        { id: "p1", expenseId: "e1", status: "unpaid", amountMinor: 3_000_000, dueDate: "2026-01-01" },
-        { id: "p2", expenseId: "e2", status: "paid", amountMinor: 9_000_000, dueDate: "2026-01-01" },
+        { id: "p1", expenseId: "e1", status: "unpaid", baseAmountMinor: 3_000_000, dueDate: "2026-01-01" },
+        { id: "p2", expenseId: "e2", status: "paid", baseAmountMinor: 9_000_000, dueDate: "2026-01-01" },
       ],
     });
     expect(result[0]?.spentMinor).toBe(0);
@@ -139,10 +139,10 @@ describe("paymentTotals", () => {
     const now = new Date("2026-08-01T00:00:00Z");
     const result = paymentTotals(
       [
-        { id: "p1", status: "paid", amountMinor: 100_000, dueDate: "2026-05-01", paymentDate: "2026-05-01" },
-        { id: "p2", status: "unpaid", amountMinor: 50_000, dueDate: "2026-09-01" },
-        { id: "p3", status: "unpaid", amountMinor: 20_000, dueDate: "2026-07-15" },
-        { id: "p4", status: "overdue", amountMinor: 5_000, dueDate: "2026-07-01" },
+        { id: "p1", status: "paid", baseAmountMinor: 100_000, dueDate: "2026-05-01", paymentDate: "2026-05-01" },
+        { id: "p2", status: "unpaid", baseAmountMinor: 50_000, dueDate: "2026-09-01" },
+        { id: "p3", status: "unpaid", baseAmountMinor: 20_000, dueDate: "2026-07-15" },
+        { id: "p4", status: "overdue", baseAmountMinor: 5_000, dueDate: "2026-07-01" },
       ],
       now,
     );

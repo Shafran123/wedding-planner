@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { expenseSchema, expenseUpdateSchema } from "@wedding/shared";
 import type { Expense as ExpenseDTO } from "@wedding/shared";
-import { BudgetCategory, Expense, Vendor } from "../models/index.js";
+import { BudgetCategory, Expense, Vendor, Wedding } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import { writeActivity } from "../services/activity.js";
+import { normalizeMoney, weddingRateFor } from "../domain/currency.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import {
   requireAuth,
@@ -32,6 +33,12 @@ function serializeExpense(
     description: (doc.description as string) || undefined,
     estimatedMinor: doc.estimatedMinor as number,
     actualMinor: (doc.actualMinor as number | null) ?? undefined,
+    currency: (doc.currency as string) || "AED",
+    rate: (doc.rate as number) ?? 1,
+    baseEstimatedMinor: (doc.baseEstimatedMinor as number) ?? (doc.estimatedMinor as number),
+    baseActualMinor:
+      ((doc.baseActualMinor as number | null) ?? (doc.actualMinor as number | null)) ??
+      undefined,
     status: doc.status as ExpenseDTO["status"],
     paymentStatus: doc.paymentStatus as ExpenseDTO["paymentStatus"],
     dueDate: iso(doc.dueDate as Date | null),
@@ -82,6 +89,31 @@ router.post(
     const authed = req as AuthedRequest;
     const input = validate(expenseSchema, req.body);
 
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const fallback = weddingRateFor(
+      wedding.rates,
+      input.currency ?? wedding.currency,
+    );
+    const estimated = normalizeMoney(
+      {
+        minor: input.estimatedMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    const actual = normalizeMoney(
+      {
+        minor: input.actualMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+
     const expense = await Expense.create({
       weddingId: authed.weddingId,
       categoryId: cleanString(input.categoryId) ?? null,
@@ -90,10 +122,20 @@ router.post(
       description: input.description ?? "",
       estimatedMinor: input.estimatedMinor,
       actualMinor: input.actualMinor ?? null,
+      currency: estimated?.currency ?? input.currency ?? wedding.currency,
+      rate: estimated?.rate ?? 1,
+      baseEstimatedMinor: estimated?.baseMinor ?? null,
+      baseActualMinor: actual?.baseMinor ?? null,
       dueDate: input.dueDate ? new Date(input.dueDate) : null,
       notes: input.notes ?? "",
       receiptUrl: input.receiptUrl ?? null,
     });
+
+    if (estimated && estimated.currency !== wedding.currency) {
+      wedding.rates.set(estimated.currency, estimated.rate);
+      wedding.markModified("rates");
+      await wedding.save();
+    }
 
     await writeActivity({
       weddingId: authed.weddingId,
@@ -152,6 +194,47 @@ router.patch(
         expense.set(key, cleanString(value as string) ?? null);
       } else {
         expense.set(key, value);
+      }
+    }
+
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const currencyChanged = input.currency !== undefined;
+    const rateChanged = input.rate !== undefined;
+    const storedCurrency =
+      (expense.get("currency") as string | undefined) ?? wedding.currency;
+    const storedRate =
+      currencyChanged && !rateChanged
+        ? undefined
+        : ((expense.get("rate") as number | null | undefined) ?? undefined);
+    const fallback = weddingRateFor(wedding.rates, storedCurrency);
+    const estimated = normalizeMoney(
+      {
+        minor: expense.get("estimatedMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    const actual = normalizeMoney(
+      {
+        minor: expense.get("actualMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    if (estimated) {
+      expense.set("currency", estimated.currency);
+      expense.set("rate", estimated.rate);
+      expense.set("baseEstimatedMinor", estimated.baseMinor);
+      expense.set("baseActualMinor", actual?.baseMinor ?? null);
+      if (estimated.currency !== wedding.currency) {
+        wedding.rates.set(estimated.currency, estimated.rate);
+        wedding.markModified("rates");
+        await wedding.save();
       }
     }
     await expense.save();

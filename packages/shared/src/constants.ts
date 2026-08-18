@@ -1,15 +1,6 @@
 export const CURRENCIES = [
   { code: "AED", label: "UAE Dirham", symbol: "AED" },
-  { code: "USD", label: "US Dollar", symbol: "$" },
-  { code: "EUR", label: "Euro", symbol: "€" },
-  { code: "GBP", label: "British Pound", symbol: "£" },
   { code: "LKR", label: "Sri Lankan Rupee", symbol: "Rs" },
-  { code: "INR", label: "Indian Rupee", symbol: "₹" },
-  { code: "SAR", label: "Saudi Riyal", symbol: "SAR" },
-  { code: "QAR", label: "Qatari Riyal", symbol: "QAR" },
-  { code: "KWD", label: "Kuwaiti Dinar", symbol: "KWD" },
-  { code: "BHD", label: "Bahraini Dinar", symbol: "BHD" },
-  { code: "OMR", label: "Omani Rial", symbol: "OMR" },
 ] as const;
 
 export type CurrencyCode = (typeof CURRENCIES)[number]["code"];

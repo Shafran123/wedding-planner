@@ -42,6 +42,7 @@ export interface Wedding {
   coverImageUrl?: string;
   plan?: string;
   subscriptionStatus?: string;
+  rates?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }
@@ -97,6 +98,10 @@ export interface Task {
   assigneeName?: string;
   estimatedCostMinor?: number;
   actualCostMinor?: number;
+  currency?: string;
+  rate?: number;
+  baseEstimatedCostMinor?: number;
+  baseActualCostMinor?: number;
   vendorId?: string;
   eventId?: string;
   createdAt: string;
@@ -115,6 +120,10 @@ export interface Expense {
   description?: string;
   estimatedMinor: number;
   actualMinor?: number;
+  currency?: string;
+  rate?: number;
+  baseEstimatedMinor?: number;
+  baseActualMinor?: number;
   status: "active" | "cancelled";
   paymentStatus: ExpensePaymentStatus;
   dueDate?: string;
@@ -132,6 +141,9 @@ export interface Payment {
   expenseId?: string;
   expenseName?: string;
   amountMinor: number;
+  currency?: string;
+  rate?: number;
+  baseAmountMinor?: number;
   paymentDate?: string;
   dueDate: string;
   status: PaymentStatus;
@@ -154,6 +166,9 @@ export interface Vendor {
   instagram?: string;
   address?: string;
   priceMinor?: number;
+  currency?: string;
+  rate?: number;
+  basePriceMinor?: number;
   status: VendorStatus;
   rating?: number;
   meetingDate?: string;
@@ -176,6 +191,10 @@ export interface Location {
   capacity?: number;
   estimatedCostMinor?: number;
   actualCostMinor?: number;
+  currency?: string;
+  rate?: number;
+  baseEstimatedCostMinor?: number;
+  baseActualCostMinor?: number;
   status: LocationStatus;
   visitDate?: string;
   notes?: string;

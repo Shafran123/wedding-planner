@@ -23,14 +23,14 @@ export async function buildBudgetInput(
       id: String(e._id),
       categoryId: e.categoryId ? String(e.categoryId) : undefined,
       status: e.status,
-      estimatedMinor: e.estimatedMinor,
+      baseEstimatedMinor: e.baseEstimatedMinor ?? e.estimatedMinor,
       paymentStatus: e.paymentStatus,
     })),
     payments: payments.map((p) => ({
       id: String(p._id),
       expenseId: p.expenseId ? String(p.expenseId) : undefined,
       status: p.status,
-      amountMinor: p.amountMinor,
+      baseAmountMinor: p.baseAmountMinor ?? p.amountMinor,
       dueDate: iso(p.dueDate) as string,
     })),
   };

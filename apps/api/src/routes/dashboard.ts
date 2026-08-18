@@ -23,6 +23,7 @@ import {
 import { NotFoundError } from "../errors.js";
 import { getCountdown } from "../domain/countdown.js";
 import { computeBudget, computeCategorySpend } from "../domain/money.js";
+import { ratesToObject } from "../domain/currency.js";
 import { computeProgress } from "../domain/progress.js";
 import { buildBudgetInput } from "../services/budget.js";
 import { completionPercent, isOverdue } from "../domain/taskLogic.js";
@@ -160,6 +161,9 @@ router.get(
         vendorId: p.vendorId ? String(p.vendorId) : undefined,
         expenseId: p.expenseId ? String(p.expenseId) : undefined,
         amountMinor: p.amountMinor,
+        currency: p.currency ?? "AED",
+        rate: p.rate ?? 1,
+        baseAmountMinor: p.baseAmountMinor ?? p.amountMinor,
         dueDate: iso(p.dueDate) as string,
         status: "unpaid",
         method: p.method,
@@ -207,7 +211,10 @@ router.get(
         actionUrl: "/tasks",
       });
     }
-    const upcomingPaymentsMinor = paymentsDueIn30.reduce((sum, p) => sum + p.amountMinor, 0);
+    const upcomingPaymentsMinor = paymentsDueIn30.reduce(
+      (sum, p) => sum + (p.baseAmountMinor ?? p.amountMinor),
+      0,
+    );
     if (upcomingPaymentsMinor > 0) {
       insights.push({
         kind: "payments",
@@ -239,6 +246,9 @@ router.get(
         location: wedding.location ?? undefined,
         coverImageUrl: wedding.coverImageUrl ?? undefined,
         plan: wedding.plan ?? undefined,
+        rates: ratesToObject(
+          wedding.rates as Map<string, number> | Record<string, number> | null | undefined,
+        ),
         createdAt: iso(wedding.createdAt) as string,
         updatedAt: iso(wedding.updatedAt) as string,
       },

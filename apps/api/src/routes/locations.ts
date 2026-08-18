@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { locationSchema, locationUpdateSchema } from "@wedding/shared";
 import type { Location as LocationDTO } from "@wedding/shared";
-import { Location } from "../models/index.js";
+import { Location, Wedding } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import { writeActivity } from "../services/activity.js";
+import { normalizeMoney, weddingRateFor } from "../domain/currency.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import {
   requireAuth,
@@ -28,6 +29,16 @@ function serializeLocation(doc: Record<string, unknown>): LocationDTO {
     capacity: (doc.capacity as number | null) ?? undefined,
     estimatedCostMinor: (doc.estimatedCostMinor as number | null) ?? undefined,
     actualCostMinor: (doc.actualCostMinor as number | null) ?? undefined,
+    currency: (doc.currency as string) || "AED",
+    rate: (doc.rate as number) ?? 1,
+    baseEstimatedCostMinor:
+      (doc.baseEstimatedCostMinor as number | null) ??
+      (doc.estimatedCostMinor as number | null) ??
+      undefined,
+    baseActualCostMinor:
+      (doc.baseActualCostMinor as number | null) ??
+      (doc.actualCostMinor as number | null) ??
+      undefined,
     status: doc.status as LocationDTO["status"],
     visitDate: iso(doc.visitDate as Date | null),
     notes: (doc.notes as string) || undefined,
@@ -73,6 +84,31 @@ router.post(
     const authed = req as AuthedRequest;
     const input = validate(locationSchema, req.body);
 
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const fallback = weddingRateFor(
+      wedding.rates,
+      input.currency ?? wedding.currency,
+    );
+    const estimated = normalizeMoney(
+      {
+        minor: input.estimatedCostMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    const actual = normalizeMoney(
+      {
+        minor: input.actualCostMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+
     const location = await Location.create({
       weddingId: authed.weddingId,
       name: input.name,
@@ -86,6 +122,10 @@ router.post(
       capacity: input.capacity ?? null,
       estimatedCostMinor: input.estimatedCostMinor ?? null,
       actualCostMinor: input.actualCostMinor ?? null,
+      currency: estimated?.currency ?? input.currency ?? wedding.currency,
+      rate: estimated?.rate ?? 1,
+      baseEstimatedCostMinor: estimated?.baseMinor ?? null,
+      baseActualCostMinor: actual?.baseMinor ?? null,
       status: input.status,
       visitDate: input.visitDate ? new Date(input.visitDate) : null,
       notes: input.notes ?? "",
@@ -95,6 +135,12 @@ router.post(
       decoration: input.decoration ?? null,
       accommodation: input.accommodation ?? null,
     });
+
+    if (estimated && estimated.currency !== wedding.currency) {
+      wedding.rates.set(estimated.currency, estimated.rate);
+      wedding.markModified("rates");
+      await wedding.save();
+    }
 
     await writeActivity({
       weddingId: authed.weddingId,
@@ -149,6 +195,47 @@ router.patch(
         location.set(key, cleanString(value as string) ?? "");
       } else {
         location.set(key, value);
+      }
+    }
+
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const currencyChanged = input.currency !== undefined;
+    const rateChanged = input.rate !== undefined;
+    const storedCurrency =
+      (location.get("currency") as string | undefined) ?? wedding.currency;
+    const storedRate =
+      currencyChanged && !rateChanged
+        ? undefined
+        : ((location.get("rate") as number | null | undefined) ?? undefined);
+    const fallback = weddingRateFor(wedding.rates, storedCurrency);
+    const estimated = normalizeMoney(
+      {
+        minor: location.get("estimatedCostMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    const actual = normalizeMoney(
+      {
+        minor: location.get("actualCostMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    if (estimated) {
+      location.set("currency", estimated.currency);
+      location.set("rate", estimated.rate);
+      location.set("baseEstimatedCostMinor", estimated.baseMinor);
+      location.set("baseActualCostMinor", actual?.baseMinor ?? null);
+      if (estimated.currency !== wedding.currency) {
+        wedding.rates.set(estimated.currency, estimated.rate);
+        wedding.markModified("rates");
+        await wedding.save();
       }
     }
     await location.save();

@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { vendorSchema, vendorUpdateSchema } from "@wedding/shared";
 import type { Vendor as VendorDTO } from "@wedding/shared";
-import { Vendor } from "../models/index.js";
+import { Vendor, Wedding } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import { writeActivity } from "../services/activity.js";
+import { normalizeMoney, weddingRateFor } from "../domain/currency.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import {
   requireAuth,
@@ -27,6 +28,10 @@ function serializeVendor(doc: Record<string, unknown>): VendorDTO {
     instagram: (doc.instagram as string) || undefined,
     address: (doc.address as string) || undefined,
     priceMinor: (doc.priceMinor as number | null) ?? undefined,
+    currency: (doc.currency as string) || "AED",
+    rate: (doc.rate as number) ?? 1,
+    basePriceMinor:
+      (doc.basePriceMinor as number | null) ?? (doc.priceMinor as number | null) ?? undefined,
     status: doc.status as VendorDTO["status"],
     rating: (doc.rating as number | null) ?? undefined,
     meetingDate: iso(doc.meetingDate as Date | null),
@@ -69,6 +74,22 @@ router.post(
     const authed = req as AuthedRequest;
     const input = validate(vendorSchema, req.body);
 
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const fallback = weddingRateFor(
+      wedding.rates,
+      input.currency ?? wedding.currency,
+    );
+    const normalized = normalizeMoney(
+      {
+        minor: input.priceMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+
     const vendor = await Vendor.create({
       weddingId: authed.weddingId,
       name: input.name,
@@ -80,11 +101,20 @@ router.post(
       instagram: input.instagram ?? "",
       address: input.address ?? "",
       priceMinor: input.priceMinor ?? null,
+      currency: normalized?.currency ?? input.currency ?? wedding.currency,
+      rate: normalized?.rate ?? 1,
+      basePriceMinor: normalized?.baseMinor ?? null,
       status: input.status,
       rating: input.rating ?? null,
       meetingDate: input.meetingDate ? new Date(input.meetingDate) : null,
       notes: input.notes ?? "",
     });
+
+    if (normalized && normalized.currency !== wedding.currency) {
+      wedding.rates.set(normalized.currency, normalized.rate);
+      wedding.markModified("rates");
+      await wedding.save();
+    }
 
     await writeActivity({
       weddingId: authed.weddingId,
@@ -137,6 +167,37 @@ router.patch(
         vendor.set("meetingDate", value ? new Date(value as string) : null);
       } else {
         vendor.set(key, key === "website" ? cleanString(value as string) ?? "" : value);
+      }
+    }
+
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const currencyChanged = input.currency !== undefined;
+    const rateChanged = input.rate !== undefined;
+    const storedCurrency =
+      (vendor.get("currency") as string | undefined) ?? wedding.currency;
+    const storedRate =
+      currencyChanged && !rateChanged
+        ? undefined
+        : ((vendor.get("rate") as number | null | undefined) ?? undefined);
+    const fallback = weddingRateFor(wedding.rates, storedCurrency);
+    const normalized = normalizeMoney(
+      {
+        minor: vendor.get("priceMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    if (normalized) {
+      vendor.set("currency", normalized.currency);
+      vendor.set("rate", normalized.rate);
+      vendor.set("basePriceMinor", normalized.baseMinor);
+      if (normalized.currency !== wedding.currency) {
+        wedding.rates.set(normalized.currency, normalized.rate);
+        wedding.markModified("rates");
+        await wedding.save();
       }
     }
     await vendor.save();

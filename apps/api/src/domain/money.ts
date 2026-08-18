@@ -11,7 +11,7 @@ export interface ExpenseInput {
   id: string;
   categoryId?: string;
   status: string;
-  estimatedMinor: number;
+  baseEstimatedMinor: number;
   paymentStatus?: string;
 }
 
@@ -19,7 +19,7 @@ export interface PaymentInput {
   id: string;
   expenseId?: string;
   status: string;
-  amountMinor: number;
+  baseAmountMinor: number;
   dueDate: string;
   paymentDate?: string;
 }
@@ -39,10 +39,10 @@ export function computeBudget(input: ComputeBudgetInput): BudgetTotals {
   const plannedMinor = input.categories.reduce((sum, c) => sum + c.plannedMinor, 0);
   const committedMinor = input.expenses
     .filter((e) => e.status === "active")
-    .reduce((sum, e) => sum + e.estimatedMinor, 0);
+    .reduce((sum, e) => sum + e.baseEstimatedMinor, 0);
   const paidMinor = input.payments
     .filter((p) => p.status === "paid")
-    .reduce((sum, p) => sum + p.amountMinor, 0);
+    .reduce((sum, p) => sum + p.baseAmountMinor, 0);
 
   const remainingMinor = input.totalBudgetMinor - paidMinor;
   const percentUsed =
@@ -98,7 +98,7 @@ export function computeCategorySpend(
     if (!categoryId) continue;
     spentByCategory.set(
       categoryId,
-      (spentByCategory.get(categoryId) ?? 0) + payment.amountMinor,
+      (spentByCategory.get(categoryId) ?? 0) + payment.baseAmountMinor,
     );
   }
 
@@ -126,15 +126,15 @@ export function paymentTotals(
 
   for (const payment of payments) {
     if (payment.status === "paid") {
-      paidMinor += payment.amountMinor;
+      paidMinor += payment.baseAmountMinor;
       continue;
     }
     const due = new Date(payment.dueDate).getTime();
     if (Number.isNaN(due)) continue;
     if (due < todayStart) {
-      overdueMinor += payment.amountMinor;
+      overdueMinor += payment.baseAmountMinor;
     } else {
-      upcomingMinor += payment.amountMinor;
+      upcomingMinor += payment.baseAmountMinor;
     }
   }
 
