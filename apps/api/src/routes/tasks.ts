@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { taskSchema, taskUpdateSchema } from "@wedding/shared";
 import type { Task as TaskDTO } from "@wedding/shared";
-import { Member, Task, TaskCategory } from "../models/index.js";
+import { Member, Task, TaskCategory, Wedding } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import { writeActivity } from "../services/activity.js";
+import { normalizeMoney, weddingRateFor } from "../domain/currency.js";
 import type { AuthedRequest } from "../middleware/auth.js";
 import { requireAuth, requireWedding, requireRole } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
@@ -30,6 +31,16 @@ function serializeTask(
     assigneeName: assignedTo ? memberNames.get(assignedTo) : undefined,
     estimatedCostMinor: (doc.estimatedCostMinor as number | null) ?? undefined,
     actualCostMinor: (doc.actualCostMinor as number | null) ?? undefined,
+    currency: (doc.currency as string) || "AED",
+    rate: (doc.rate as number) ?? 1,
+    baseEstimatedCostMinor:
+      (doc.baseEstimatedCostMinor as number | null) ??
+      (doc.estimatedCostMinor as number | null) ??
+      undefined,
+    baseActualCostMinor:
+      (doc.baseActualCostMinor as number | null) ??
+      (doc.actualCostMinor as number | null) ??
+      undefined,
     vendorId: doc.vendorId ? String(doc.vendorId) : undefined,
     eventId: doc.eventId ? String(doc.eventId) : undefined,
     createdAt: iso(doc.createdAt as Date) as string,
@@ -85,6 +96,31 @@ router.post(
     const authed = req as AuthedRequest;
     const input = validate(taskSchema, req.body);
 
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const fallback = weddingRateFor(
+      wedding.rates,
+      input.currency ?? wedding.currency,
+    );
+    const estimated = normalizeMoney(
+      {
+        minor: input.estimatedCostMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    const actual = normalizeMoney(
+      {
+        minor: input.actualCostMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+
     const task = await Task.create({
       weddingId: authed.weddingId,
       title: input.title,
@@ -96,10 +132,20 @@ router.post(
       assignedTo: cleanString(input.assignedTo) ?? null,
       estimatedCostMinor: input.estimatedCostMinor ?? null,
       actualCostMinor: input.actualCostMinor ?? null,
+      currency: estimated?.currency ?? input.currency ?? wedding.currency,
+      rate: estimated?.rate ?? 1,
+      baseEstimatedCostMinor: estimated?.baseMinor ?? null,
+      baseActualCostMinor: actual?.baseMinor ?? null,
       vendorId: cleanString(input.vendorId) ?? null,
       eventId: cleanString(input.eventId) ?? null,
       completedAt: input.status === "completed" ? new Date() : null,
     });
+
+    if (estimated && estimated.currency !== wedding.currency) {
+      wedding.rates.set(estimated.currency, estimated.rate);
+      wedding.markModified("rates");
+      await wedding.save();
+    }
 
     await writeActivity({
       weddingId: authed.weddingId,
@@ -170,6 +216,47 @@ router.patch(
         }
       } else {
         task.set(key, value);
+      }
+    }
+
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const currencyChanged = input.currency !== undefined;
+    const rateChanged = input.rate !== undefined;
+    const storedCurrency =
+      (task.get("currency") as string | undefined) ?? wedding.currency;
+    const storedRate =
+      currencyChanged && !rateChanged
+        ? undefined
+        : ((task.get("rate") as number | null | undefined) ?? undefined);
+    const fallback = weddingRateFor(wedding.rates, storedCurrency);
+    const estimated = normalizeMoney(
+      {
+        minor: task.get("estimatedCostMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    const actual = normalizeMoney(
+      {
+        minor: task.get("actualCostMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    if (estimated) {
+      task.set("currency", estimated.currency);
+      task.set("rate", estimated.rate);
+      task.set("baseEstimatedCostMinor", estimated.baseMinor);
+      task.set("baseActualCostMinor", actual?.baseMinor ?? null);
+      if (estimated.currency !== wedding.currency) {
+        wedding.rates.set(estimated.currency, estimated.rate);
+        wedding.markModified("rates");
+        await wedding.save();
       }
     }
     await task.save();

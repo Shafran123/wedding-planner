@@ -10,6 +10,7 @@ import {
 } from "../models/index.js";
 import { NotFoundError } from "../errors.js";
 import { writeActivity } from "../services/activity.js";
+import { normalizeMoney, weddingRateFor } from "../domain/currency.js";
 import {
   notifyBudgetAfterPaymentChange,
   maybeNotifyPaymentDue,
@@ -51,6 +52,10 @@ function serializePayment(
     expenseId,
     expenseName: expenseId ? expenseNames.get(expenseId) : undefined,
     amountMinor: doc.amountMinor as number,
+    currency: (doc.currency as string) || "AED",
+    rate: (doc.rate as number) ?? 1,
+    baseAmountMinor:
+      (doc.baseAmountMinor as number) ?? (doc.amountMinor as number),
     paymentDate: iso(doc.paymentDate as Date | null),
     dueDate: dueDate.toISOString(),
     status: effectiveStatus({ status: doc.status as string, dueDate }, now),
@@ -66,8 +71,11 @@ async function recomputeExpenseSnapshot(expenseId: string): Promise<void> {
   const expense = await Expense.findById(expenseId);
   if (!expense) return;
   const payments = await Payment.find({ expenseId, status: "paid" }).lean();
-  const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0);
-  const expected = expense.estimatedMinor;
+  const paidMinor = payments.reduce(
+    (sum, p) => sum + (p.baseAmountMinor ?? p.amountMinor),
+    0,
+  );
+  const expected = expense.baseEstimatedMinor ?? expense.estimatedMinor;
 
   if (paidMinor >= expected && expected > 0) {
     expense.set("paymentStatus", "paid");
@@ -127,11 +135,30 @@ router.post(
     const authed = req as AuthedRequest;
     const input = validate(paymentSchema, req.body);
 
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const fallback = weddingRateFor(
+      wedding.rates,
+      input.currency ?? wedding.currency,
+    );
+    const normalized = normalizeMoney(
+      {
+        minor: input.amountMinor,
+        currency: input.currency,
+        rate: input.rate,
+      },
+      wedding.currency,
+      fallback,
+    );
+
     const payment = await Payment.create({
       weddingId: authed.weddingId,
       vendorId: cleanString(input.vendorId) ?? null,
       expenseId: cleanString(input.expenseId) ?? null,
       amountMinor: input.amountMinor,
+      currency: normalized?.currency ?? input.currency ?? wedding.currency,
+      rate: normalized?.rate ?? 1,
+      baseAmountMinor: normalized?.baseMinor ?? null,
       paymentDate: input.paymentDate ? new Date(input.paymentDate) : null,
       dueDate: new Date(input.dueDate),
       status: input.status,
@@ -139,6 +166,12 @@ router.post(
       reference: input.reference ?? "",
       notes: input.notes ?? "",
     });
+
+    if (normalized && normalized.currency !== wedding.currency) {
+      wedding.rates.set(normalized.currency, normalized.rate);
+      wedding.markModified("rates");
+      await wedding.save();
+    }
 
     if (payment.expenseId) {
       await recomputeExpenseSnapshot(String(payment.expenseId));
@@ -185,6 +218,37 @@ router.patch(
         payment.set(key, cleanString(value as string) ?? null);
       } else {
         payment.set(key, value);
+      }
+    }
+
+    const wedding = await Wedding.findById(authed.weddingId);
+    if (!wedding) throw new NotFoundError("We couldn't find your wedding.");
+    const currencyChanged = input.currency !== undefined;
+    const rateChanged = input.rate !== undefined;
+    const storedCurrency =
+      (payment.get("currency") as string | undefined) ?? wedding.currency;
+    const storedRate =
+      currencyChanged && !rateChanged
+        ? undefined
+        : ((payment.get("rate") as number | null | undefined) ?? undefined);
+    const fallback = weddingRateFor(wedding.rates, storedCurrency);
+    const normalized = normalizeMoney(
+      {
+        minor: payment.get("amountMinor") as number | null,
+        currency: storedCurrency,
+        rate: storedRate,
+      },
+      wedding.currency,
+      fallback,
+    );
+    if (normalized) {
+      payment.set("currency", normalized.currency);
+      payment.set("rate", normalized.rate);
+      payment.set("baseAmountMinor", normalized.baseMinor);
+      if (normalized.currency !== wedding.currency) {
+        wedding.rates.set(normalized.currency, normalized.rate);
+        wedding.markModified("rates");
+        await wedding.save();
       }
     }
     await payment.save();

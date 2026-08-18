@@ -20,13 +20,26 @@ export const moneyMinor = z
 
 export const optionalMoneyMinor = moneyMinor.optional();
 
+export const currencyCode = z.enum(["AED", "LKR"]);
+
+export const exchangeRate = z
+  .number()
+  .positive("Rate must be greater than zero")
+  .max(1_000_000)
+  .optional();
+
+export const moneyCurrencyFields = {
+  currency: currencyCode.optional(),
+  rate: exchangeRate,
+};
+
 export const onboardingSchema = z.object({
   weddingName: z.string().min(2, "Give your wedding a name").max(120),
   partnerOneName: z.string().min(1, "Partner one name is required").max(80),
   partnerTwoName: z.string().max(80).optional().or(z.literal("")),
   weddingDate: z.string().min(1, "Wedding date is required"),
   location: z.string().max(200).optional(),
-  currency: z.string().length(3).default("AED"),
+  currency: currencyCode.default("AED"),
   estimatedGuestCount: z.number().int().min(0).max(10000).optional(),
   totalBudgetMinor: moneyMinor.default(0),
   weddingType: z.string().max(60).optional(),
@@ -40,7 +53,8 @@ export const weddingUpdateSchema = z.object({
   partnerTwoName: z.string().max(80).optional(),
   weddingDate: z.string().optional(),
   timezone: z.string().max(60).optional(),
-  currency: z.string().length(3).optional(),
+  currency: currencyCode.optional(),
+  rate: exchangeRate,
   estimatedGuestCount: z.number().int().min(0).max(10000).optional(),
   totalBudgetMinor: moneyMinor.optional(),
   weddingType: z.string().max(60).optional(),
@@ -60,6 +74,7 @@ export const taskSchema = z.object({
   actualCostMinor: optionalMoneyMinor,
   vendorId: z.string().optional().or(z.literal("")),
   eventId: z.string().optional().or(z.literal("")),
+  ...moneyCurrencyFields,
 });
 
 export const taskUpdateSchema = taskSchema.partial();
@@ -74,6 +89,7 @@ export const expenseSchema = z.object({
   dueDate: z.string().optional().or(z.literal("")),
   notes: z.string().max(4000).optional().or(z.literal("")),
   receiptUrl: z.string().url().optional().or(z.literal("")),
+  ...moneyCurrencyFields,
 });
 
 export const expenseUpdateSchema = expenseSchema.partial();
@@ -88,6 +104,7 @@ export const paymentSchema = z.object({
   method: z.enum(PAYMENT_METHODS).default("bank_transfer"),
   reference: z.string().max(200).optional().or(z.literal("")),
   notes: z.string().max(2000).optional().or(z.literal("")),
+  ...moneyCurrencyFields,
 });
 
 export const paymentUpdateSchema = paymentSchema.partial();
@@ -106,6 +123,7 @@ export const vendorSchema = z.object({
   rating: z.number().min(0).max(5).optional(),
   meetingDate: z.string().optional().or(z.literal("")),
   notes: z.string().max(4000).optional().or(z.literal("")),
+  ...moneyCurrencyFields,
 });
 
 export const vendorUpdateSchema = vendorSchema.partial();
@@ -130,6 +148,7 @@ export const locationSchema = z.object({
   catering: z.boolean().optional(),
   decoration: z.boolean().optional(),
   accommodation: z.boolean().optional(),
+  ...moneyCurrencyFields,
 });
 
 export const locationUpdateSchema = locationSchema.partial();

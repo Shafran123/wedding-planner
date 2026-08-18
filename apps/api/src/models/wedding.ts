@@ -9,6 +9,7 @@ const weddingSchema = new Schema(
     weddingDate: { type: Date, required: true },
     timezone: { type: String, default: "Asia/Dubai" },
     currency: { type: String, default: "AED" },
+    rates: { type: Map, of: Number, default: {} },
     estimatedGuestCount: { type: Number },
     totalBudgetMinor: { type: Number, default: 0 },
     weddingType: { type: String },

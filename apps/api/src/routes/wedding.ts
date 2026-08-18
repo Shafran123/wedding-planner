@@ -7,6 +7,7 @@ import type { AuthedRequest } from "../middleware/auth.js";
 import { requireAuth, requireWedding, requireRole } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/error.js";
 import { actorOf, cleanString, iso, validate } from "./helpers.js";
+import { ratesToObject } from "../domain/currency.js";
 import type { Wedding as WeddingDTO } from "@wedding/shared";
 
 function serializeWedding(doc: {
@@ -32,6 +33,7 @@ function serializeWedding(doc: {
     coverImageUrl: doc.coverImageUrl as string | undefined,
     plan: doc.plan as string | undefined,
     subscriptionStatus: doc.subscriptionStatus as string | undefined,
+    rates: ratesToObject(doc.rates as Map<string, number> | Record<string, number> | null | undefined),
     createdAt: iso(doc.createdAt) as string,
     updatedAt: iso(doc.updatedAt) as string,
   };
