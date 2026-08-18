@@ -109,7 +109,13 @@ export function QuickAdd({ children, ...buttonProps }: ButtonProps & { children?
           </DialogHeader>
           {error && <FieldError message={error} />}
           <QuickTask onDone={submit} busy={busy} visible={kind === "task"} />
-          <QuickExpense onDone={submit} busy={busy} visible={kind === "expense"} currency={wedding?.currency ?? "AED"} />
+          <QuickExpense
+            onDone={submit}
+            busy={busy}
+            visible={kind === "expense"}
+            baseCurrency={wedding?.currency ?? "AED"}
+            fallbackRate={wedding?.rates?.["LKR"]}
+          />
           <QuickVendor onDone={submit} busy={busy} visible={kind === "vendor"} />
           <QuickEvent onDone={submit} busy={busy} visible={kind === "event"} />
           <QuickLocation onDone={submit} busy={busy} visible={kind === "location"} />
@@ -151,23 +157,34 @@ function QuickTask({ visible, busy, onDone }: { visible: boolean; busy: boolean;
   );
 }
 
-function QuickExpense({ visible, busy, onDone, currency }: { visible: boolean; busy: boolean; onDone: Submit; currency: string }) {
+function QuickExpense({ visible, busy, onDone, baseCurrency, fallbackRate }: { visible: boolean; busy: boolean; onDone: Submit; baseCurrency: string; fallbackRate?: number }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [currency, setCurrency] = useState(baseCurrency);
+  const [rate, setRate] = useState("");
   const { data: budgetData } = useSWR<{ categories: BudgetCategory[] }>(
     visible ? "/api/budget" : null,
     (path: string) => api<{ categories: BudgetCategory[] }>(path),
   );
   if (!visible) return null;
+  const rateNum = Number(rate);
+  const amountMinor = parseToMinor(amount);
+  const rateValid = currency === baseCurrency || (Number.isFinite(rateNum) && rateNum > 0);
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        const minor = parseToMinor(amount);
-        if (minor === null) return;
-        void onDone("/api/expenses", { name, estimatedMinor: minor, categoryId: categoryId || undefined }, ["/api/expenses", "/api/budget", "/api/dashboard"]);
+        if (amountMinor === null || !rateValid) return;
+        const body: Record<string, unknown> = {
+          name,
+          estimatedMinor: amountMinor,
+          categoryId: categoryId || undefined,
+          currency,
+        };
+        if (currency !== baseCurrency) body.rate = rateNum;
+        void onDone("/api/expenses", body, ["/api/expenses", "/api/budget", "/api/dashboard"]);
       }}
     >
       <div className="space-y-1">
@@ -176,7 +193,7 @@ function QuickExpense({ visible, busy, onDone, currency }: { visible: boolean; b
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label htmlFor="q-expense-amount">Amount ({currency})</Label>
+          <Label htmlFor="q-expense-amount">Amount</Label>
           <Input id="q-expense-amount" required inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
         </div>
         <div className="space-y-1">
@@ -188,9 +205,32 @@ function QuickExpense({ visible, busy, onDone, currency }: { visible: boolean; b
             ))}
           </Select>
         </div>
+        <div className="space-y-1">
+          <Label htmlFor="q-expense-currency">Currency</Label>
+          <Select
+            id="q-expense-currency"
+            value={currency}
+            onChange={(e) => {
+              const next = e.target.value;
+              setCurrency(next);
+              if (next !== baseCurrency && fallbackRate !== undefined && fallbackRate > 0) {
+                setRate(String(fallbackRate));
+              }
+            }}
+          >
+            <option value="AED">AED</option>
+            <option value="LKR">LKR</option>
+          </Select>
+        </div>
+        {currency !== baseCurrency && (
+          <div className="space-y-1">
+            <Label htmlFor="q-expense-rate">Rate (1 {currency} = ? {baseCurrency})</Label>
+            <Input id="q-expense-rate" required inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0.0000" />
+          </div>
+        )}
       </div>
       <DialogFooter>
-        <Button type="submit" disabled={busy || !name.trim() || parseToMinor(amount) === null}>
+        <Button type="submit" disabled={busy || !name.trim() || amountMinor === null || !rateValid}>
           {busy && <Spinner />} Add expense
         </Button>
       </DialogFooter>

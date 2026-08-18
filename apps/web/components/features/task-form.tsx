@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { taskSchema, type Task, type TaskCategory } from "@wedding/shared";
 import { api, swrFetcher } from "@/lib/api";
 import { parseToMinor } from "@/lib/money";
+import { MoneyInput } from "@/components/shared/money-input";
+import { useWedding } from "@/contexts/wedding";
 import {
   Dialog,
   DialogContent,
@@ -22,10 +24,14 @@ import { Spinner } from "@/components/ui/empty";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@wedding/shared";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS } from "@/lib/labels";
 
-const formSchema = taskSchema.extend({
-  estimatedCostInput: z.string().optional(),
-  actualCostInput: z.string().optional(),
-});
+const formSchema = taskSchema
+  .omit({ currency: true, rate: true })
+  .extend({
+    estimatedCostInput: z.string().optional(),
+    actualCostInput: z.string().optional(),
+    currency: z.string().optional(),
+    rate: z.string().optional(),
+  });
 type FormValues = z.input<typeof formSchema>;
 
 export function TaskFormDialog({
@@ -45,11 +51,16 @@ export function TaskFormDialog({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { wedding } = useWedding();
+  const baseCurrency = wedding?.currency ?? "AED";
+  const fallbackRate = wedding?.rates?.["LKR"];
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -63,6 +74,8 @@ export function TaskFormDialog({
       assignedTo: "",
       estimatedCostInput: "",
       actualCostInput: "",
+      currency: "AED",
+      rate: "",
       vendorId: "",
       eventId: "",
     },
@@ -80,21 +93,36 @@ export function TaskFormDialog({
         assignedTo: task?.assignedTo ?? "",
         estimatedCostInput: task?.estimatedCostMinor !== undefined ? String(task.estimatedCostMinor / 100) : "",
         actualCostInput: task?.actualCostMinor !== undefined ? String(task.actualCostMinor / 100) : "",
+        currency: task?.currency ?? baseCurrency,
+        rate:
+          task && task.currency && task.currency !== baseCurrency
+            ? String(task.rate ?? "")
+            : "",
         vendorId: task?.vendorId ?? "",
         eventId: task?.eventId ?? "",
       });
       setError(null);
     }
-  }, [open, task, reset]);
+  }, [open, task, reset, baseCurrency]);
 
   const onSubmit = async (values: FormValues) => {
     setBusy(true);
     setError(null);
     try {
+      const currency = values.currency || baseCurrency;
+      const rate = currency !== baseCurrency ? Number(values.rate) : undefined;
+      const hasMoney =
+        (values.estimatedCostInput ?? "") !== "" || (values.actualCostInput ?? "") !== "";
+      if (hasMoney && currency !== baseCurrency && (rate === undefined || !Number.isFinite(rate) || rate <= 0)) {
+        setError(`Enter an exchange rate to convert ${currency} to ${baseCurrency}.`);
+        return;
+      }
       const body = {
         ...values,
         estimatedCostMinor: parseToMinor(values.estimatedCostInput ?? "") ?? undefined,
         actualCostMinor: parseToMinor(values.actualCostInput ?? "") ?? undefined,
+        currency,
+        rate: rate ?? undefined,
       };
       delete (body as Record<string, unknown>).estimatedCostInput;
       delete (body as Record<string, unknown>).actualCostInput;
@@ -165,14 +193,29 @@ export function TaskFormDialog({
               <Label htmlFor="t-due">Due date</Label>
               <Input id="t-due" type="date" {...register("dueDate")} />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="t-estimated">Estimated cost</Label>
-              <Input id="t-estimated" inputMode="decimal" placeholder="0.00" {...register("estimatedCostInput")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="t-actual">Actual cost</Label>
-              <Input id="t-actual" inputMode="decimal" placeholder="0.00" {...register("actualCostInput")} />
-            </div>
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="estimatedCostInput"
+              amountId="t-estimated"
+              label="Estimated cost"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+            />
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="actualCostInput"
+              amountId="t-actual"
+              label="Actual cost"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+              primary={false}
+            />
           </div>
           {error && <FieldError message={error} />}
           <DialogFooter>

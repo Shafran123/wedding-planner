@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import type { Vendor } from "@wedding/shared";
 import { api } from "@/lib/api";
 import { parseToMinor } from "@/lib/money";
+import { MoneyInput } from "@/components/shared/money-input";
+import { useWedding } from "@/contexts/wedding";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +34,8 @@ const schema = z.object({
   instagram: z.string().optional(),
   address: z.string().optional(),
   priceInput: z.string().optional(),
+  currency: z.string().optional(),
+  rate: z.string().optional(),
   status: z.string().default("researching"),
   rating: z.string().optional(),
   meetingDate: z.string().optional(),
@@ -50,13 +54,19 @@ export function VendorFormDialog({
   vendor?: Vendor;
   onSaved: () => void;
 }) {
+  const { wedding } = useWedding();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const baseCurrency = wedding?.currency ?? "AED";
+  const fallbackRate = wedding?.rates?.["LKR"];
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -70,6 +80,8 @@ export function VendorFormDialog({
       instagram: "",
       address: "",
       priceInput: "",
+      currency: "AED",
+      rate: "",
       status: "researching",
       rating: "",
       meetingDate: "",
@@ -89,6 +101,11 @@ export function VendorFormDialog({
         instagram: vendor?.instagram ?? "",
         address: vendor?.address ?? "",
         priceInput: vendor?.priceMinor !== undefined ? String(vendor.priceMinor / 100) : "",
+        currency: vendor?.currency ?? baseCurrency,
+        rate:
+          vendor && vendor.currency && vendor.currency !== baseCurrency
+            ? String(vendor.rate ?? "")
+            : "",
         status: vendor?.status ?? "researching",
         rating: vendor?.rating !== undefined ? String(vendor.rating) : "",
         meetingDate: vendor?.meetingDate ? vendor.meetingDate.slice(0, 10) : "",
@@ -96,12 +113,18 @@ export function VendorFormDialog({
       });
       setError(null);
     }
-  }, [open, vendor, reset]);
+  }, [open, vendor, reset, baseCurrency]);
 
   const onSubmit = async (values: FormValues) => {
     setBusy(true);
     setError(null);
     try {
+      const currency = values.currency || baseCurrency;
+      const rate = currency !== baseCurrency ? Number(values.rate) : undefined;
+      if (values.priceInput && currency !== baseCurrency && (rate === undefined || !Number.isFinite(rate) || rate <= 0)) {
+        setError(`Enter an exchange rate to convert ${currency} to ${baseCurrency}.`);
+        return;
+      }
       const body = {
         name: values.name,
         category: values.category,
@@ -112,6 +135,8 @@ export function VendorFormDialog({
         instagram: values.instagram || undefined,
         address: values.address || undefined,
         priceMinor: values.priceInput ? (parseToMinor(values.priceInput) ?? undefined) : undefined,
+        currency,
+        rate: rate ?? undefined,
         status: values.status,
         rating: values.rating ? Number(values.rating) : undefined,
         meetingDate: values.meetingDate || undefined,
@@ -174,10 +199,17 @@ export function VendorFormDialog({
               <Input id="v-website" placeholder="https://…" {...register("website")} />
               <FieldError message={errors.website?.message} />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="v-price">Price</Label>
-              <Input id="v-price" inputMode="decimal" placeholder="0.00" {...register("priceInput")} />
-            </div>
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="priceInput"
+              amountId="v-price"
+              label="Price"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+            />
             <div className="space-y-1.5">
               <Label htmlFor="v-status">Status</Label>
               <Select id="v-status" {...register("status")}>

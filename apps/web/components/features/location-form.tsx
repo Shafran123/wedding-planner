@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import type { Location } from "@wedding/shared";
 import { api } from "@/lib/api";
 import { parseToMinor } from "@/lib/money";
+import { MoneyInput } from "@/components/shared/money-input";
 import { getClientStorage, ref, uploadBytes, getDownloadURL } from "@/lib/firebase";
 import { useWedding } from "@/contexts/wedding";
 import {
@@ -36,6 +37,8 @@ const schema = z.object({
   capacity: z.string().optional(),
   estimatedInput: z.string().optional(),
   actualInput: z.string().optional(),
+  currency: z.string().optional(),
+  rate: z.string().optional(),
   status: z.string().default("researching"),
   notes: z.string().optional(),
   visitDate: z.string().optional(),
@@ -61,6 +64,8 @@ export function LocationFormDialog({
   onSaved: () => void;
 }) {
   const { wedding } = useWedding();
+  const baseCurrency = wedding?.currency ?? "AED";
+  const fallbackRate = wedding?.rates?.["LKR"];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -69,6 +74,8 @@ export function LocationFormDialog({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -84,6 +91,8 @@ export function LocationFormDialog({
       capacity: "",
       estimatedInput: "",
       actualInput: "",
+      currency: "AED",
+      rate: "",
       status: "researching",
       notes: "",
       visitDate: "",
@@ -108,6 +117,11 @@ export function LocationFormDialog({
         capacity: location?.capacity !== undefined ? String(location.capacity) : "",
         estimatedInput: location?.estimatedCostMinor !== undefined ? String(location.estimatedCostMinor / 100) : "",
         actualInput: location?.actualCostMinor !== undefined ? String(location.actualCostMinor / 100) : "",
+        currency: location?.currency ?? baseCurrency,
+        rate:
+          location && location.currency && location.currency !== baseCurrency
+            ? String(location.rate ?? "")
+            : "",
         status: location?.status ?? "researching",
         notes: location?.notes ?? "",
         visitDate: location?.visitDate ? location.visitDate.slice(0, 10) : "",
@@ -119,7 +133,7 @@ export function LocationFormDialog({
       setFiles([]);
       setError(null);
     }
-  }, [open, location, reset]);
+  }, [open, location, reset, baseCurrency]);
 
   const uploadImages = async (weddingId: string): Promise<string[]> => {
     const storage = getClientStorage();
@@ -144,6 +158,14 @@ export function LocationFormDialog({
     setBusy(true);
     setError(null);
     try {
+      const currency = values.currency || baseCurrency;
+      const rate = currency !== baseCurrency ? Number(values.rate) : undefined;
+      const hasMoney =
+        (values.estimatedInput ?? "") !== "" || (values.actualInput ?? "") !== "";
+      if (hasMoney && currency !== baseCurrency && (rate === undefined || !Number.isFinite(rate) || rate <= 0)) {
+        setError(`Enter an exchange rate to convert ${currency} to ${baseCurrency}.`);
+        return;
+      }
       const body = {
         name: values.name,
         type: values.type,
@@ -156,6 +178,8 @@ export function LocationFormDialog({
         capacity: values.capacity ? Number(values.capacity) : undefined,
         estimatedCostMinor: values.estimatedInput ? (parseToMinor(values.estimatedInput) ?? undefined) : undefined,
         actualCostMinor: values.actualInput ? (parseToMinor(values.actualInput) ?? undefined) : undefined,
+        currency,
+        rate: rate ?? undefined,
         status: values.status,
         notes: values.notes || undefined,
         visitDate: values.visitDate || undefined,
@@ -228,14 +252,29 @@ export function LocationFormDialog({
               <Label htmlFor="l-visit">Visit date</Label>
               <Input id="l-visit" type="date" {...register("visitDate")} />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="l-estimated">Estimated cost</Label>
-              <Input id="l-estimated" inputMode="decimal" placeholder="0.00" {...register("estimatedInput")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="l-actual">Actual cost</Label>
-              <Input id="l-actual" inputMode="decimal" placeholder="0.00" {...register("actualInput")} />
-            </div>
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="estimatedInput"
+              amountId="l-estimated"
+              label="Estimated cost"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+            />
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="actualInput"
+              amountId="l-actual"
+              label="Actual cost"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+              primary={false}
+            />
             {(["parking", "catering", "decoration", "accommodation"] as const).map((key) => (
               <div key={key} className="space-y-1.5">
                 <Label htmlFor={`l-${key}`}>{key[0]?.toUpperCase()}{key.slice(1)}</Label>
