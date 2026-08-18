@@ -57,6 +57,9 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
         run: |
           npx --yes vercel pull --yes --environment=production
+          # The pulled env file redacts "Sensitive" vars to placeholders and
+          # overrides our secrets — drop it; step env (secrets) is the source.
+          rm -f .vercel/.env.production.local .vercel/.env.production
           npx --yes vercel build --prod
           npx --yes vercel deploy --prebuilt --prod
 
