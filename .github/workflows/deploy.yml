@@ -32,13 +32,8 @@ jobs:
           git tag "v$VERSION"
           git push origin main --tags
 
-      - name: Deploy API (Railway)
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-        run: node scripts/ci/deploy-railway.mjs
-
+      # Railway auto-deploys the bumped commit via its GitHub integration;
+      # this step polls /health until the new deploy is up (5 min timeout).
       - name: Wait for API health
         env:
           RAILWAY_URL: ${{ secrets.RAILWAY_URL }}
