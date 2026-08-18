@@ -32,7 +32,14 @@ jobs:
           git tag "v$VERSION"
           git push origin main --tags
 
-      - name: Wait for API deploy + health (Railway auto-deploys on push)
+      - name: Deploy API (Railway)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+        run: node scripts/ci/deploy-railway.mjs
+
+      - name: Wait for API health
         env:
           RAILWAY_URL: ${{ secrets.RAILWAY_URL }}
         run: node scripts/ci/wait-for-health.mjs
