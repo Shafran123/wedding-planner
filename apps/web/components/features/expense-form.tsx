@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import type { BudgetCategory, Expense, Vendor } from "@wedding/shared";
 import { api, swrFetcher } from "@/lib/api";
 import { parseToMinor } from "@/lib/money";
+import { MoneyInput } from "@/components/shared/money-input";
 import { getClientStorage, ref, uploadBytes, getDownloadURL } from "@/lib/firebase";
 import { useWedding } from "@/contexts/wedding";
 import {
@@ -29,6 +30,8 @@ const schema = z.object({
   vendorId: z.string().optional(),
   estimatedInput: z.string().min(1, "Estimated amount is required."),
   actualInput: z.string().optional(),
+  currency: z.string().optional(),
+  rate: z.string().optional(),
   dueDate: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -63,6 +66,8 @@ export function ExpenseFormDialog({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -73,10 +78,15 @@ export function ExpenseFormDialog({
       vendorId: "",
       estimatedInput: "",
       actualInput: "",
+      currency: "AED",
+      rate: "",
       dueDate: "",
       notes: "",
     },
   });
+
+  const baseCurrency = wedding?.currency ?? "AED";
+  const fallbackRate = wedding?.rates?.["LKR"];
 
   useEffect(() => {
     if (open) {
@@ -87,13 +97,18 @@ export function ExpenseFormDialog({
         vendorId: expense?.vendorId ?? "",
         estimatedInput: expense ? String(expense.estimatedMinor / 100) : "",
         actualInput: expense?.actualMinor !== undefined ? String(expense.actualMinor / 100) : "",
+        currency: expense?.currency ?? baseCurrency,
+        rate:
+          expense && expense.currency && expense.currency !== baseCurrency
+            ? String(expense.rate ?? "")
+            : "",
         dueDate: expense?.dueDate ? expense.dueDate.slice(0, 10) : "",
         notes: expense?.notes ?? "",
       });
       setReceiptFile(null);
       setError(null);
     }
-  }, [open, expense, reset]);
+  }, [open, expense, reset, baseCurrency]);
 
   const uploadReceipt = async (weddingId: string): Promise<string | undefined> => {
     if (!receiptFile) return undefined;
@@ -127,6 +142,16 @@ export function ExpenseFormDialog({
         setError("Please enter a valid amount.");
         return;
       }
+      const currency = values.currency || baseCurrency;
+      const rate =
+        currency !== baseCurrency ? Number(values.rate) : undefined;
+      if (
+        currency !== baseCurrency &&
+        (rate === undefined || !Number.isFinite(rate) || rate <= 0)
+      ) {
+        setError(`Enter an exchange rate to convert ${currency} to ${baseCurrency}.`);
+        return;
+      }
       const body: Record<string, unknown> = {
         name: values.name,
         description: values.description || undefined,
@@ -134,6 +159,8 @@ export function ExpenseFormDialog({
         vendorId: values.vendorId || undefined,
         estimatedMinor,
         actualMinor: actualMinor ?? undefined,
+        currency,
+        rate: rate ?? undefined,
         dueDate: values.dueDate || undefined,
         notes: values.notes || undefined,
       };
@@ -171,15 +198,29 @@ export function ExpenseFormDialog({
             <FieldError message={errors.name?.message} />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="e-estimated">Estimated amount</Label>
-              <Input id="e-estimated" inputMode="decimal" placeholder="0.00" {...register("estimatedInput")} />
-              <FieldError message={errors.estimatedInput?.message} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="e-actual">Actual amount</Label>
-              <Input id="e-actual" inputMode="decimal" placeholder="0.00" {...register("actualInput")} />
-            </div>
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="estimatedInput"
+              amountId="e-estimated"
+              label="Estimated amount"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+            />
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="actualInput"
+              amountId="e-actual"
+              label="Actual amount"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+              primary={false}
+            />
             <div className="space-y-1.5">
               <Label htmlFor="e-category">Category</Label>
               <Select id="e-category" {...register("categoryId")}>

@@ -3,10 +3,16 @@ import { format, formatDistanceToNow, isSameDay, isToday, isTomorrow } from "dat
 export function formatMinor(minor: number | undefined | null, currency = "AED"): string {
   if (minor === undefined || minor === null) return "—";
   const major = minor / 100;
+  const fractionDigits = minor % 100 === 0 ? 0 : 2;
+  if (currency === "LKR") {
+    return `Rs ${new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: fractionDigits,
+    }).format(major)}`;
+  }
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: minor % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: fractionDigits,
   }).format(major);
 }
 

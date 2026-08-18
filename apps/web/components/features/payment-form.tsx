@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import type { Expense, Payment, Vendor } from "@wedding/shared";
 import { api, swrFetcher } from "@/lib/api";
 import { parseToMinor } from "@/lib/money";
+import { MoneyInput } from "@/components/shared/money-input";
+import { useWedding } from "@/contexts/wedding";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +28,8 @@ const schema = z.object({
   vendorId: z.string().optional(),
   expenseId: z.string().optional(),
   amountInput: z.string().min(1, "Amount is required."),
+  currency: z.string().optional(),
+  rate: z.string().optional(),
   paymentDate: z.string().optional(),
   dueDate: z.string().min(1, "Due date is required."),
   method: z.string().default("bank_transfer"),
@@ -53,13 +57,19 @@ export function PaymentFormDialog({
     open ? "/api/expenses" : null,
     swrFetcher,
   );
+  const { wedding } = useWedding();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const baseCurrency = wedding?.currency ?? "AED";
+  const fallbackRate = wedding?.rates?.["LKR"];
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -67,6 +77,8 @@ export function PaymentFormDialog({
       vendorId: "",
       expenseId: "",
       amountInput: "",
+      currency: "AED",
+      rate: "",
       paymentDate: "",
       dueDate: "",
       method: "bank_transfer",
@@ -81,6 +93,11 @@ export function PaymentFormDialog({
         vendorId: payment?.vendorId ?? "",
         expenseId: payment?.expenseId ?? "",
         amountInput: payment ? String(payment.amountMinor / 100) : "",
+        currency: payment?.currency ?? baseCurrency,
+        rate:
+          payment && payment.currency && payment.currency !== baseCurrency
+            ? String(payment.rate ?? "")
+            : "",
         paymentDate: payment?.paymentDate ? payment.paymentDate.slice(0, 10) : "",
         dueDate: payment?.dueDate ? payment.dueDate.slice(0, 10) : "",
         method: payment?.method ?? "bank_transfer",
@@ -89,7 +106,7 @@ export function PaymentFormDialog({
       });
       setError(null);
     }
-  }, [open, payment, reset]);
+  }, [open, payment, reset, baseCurrency]);
 
   const onSubmit = async (values: FormValues) => {
     setBusy(true);
@@ -100,10 +117,21 @@ export function PaymentFormDialog({
         setError("Please enter a valid amount.");
         return;
       }
+      const currency = values.currency || baseCurrency;
+      const rate = currency !== baseCurrency ? Number(values.rate) : undefined;
+      if (
+        currency !== baseCurrency &&
+        (rate === undefined || !Number.isFinite(rate) || rate <= 0)
+      ) {
+        setError(`Enter an exchange rate to convert ${currency} to ${baseCurrency}.`);
+        return;
+      }
       const body = {
         vendorId: values.vendorId || undefined,
         expenseId: values.expenseId || undefined,
         amountMinor,
+        currency,
+        rate: rate ?? undefined,
         paymentDate: values.paymentDate || undefined,
         dueDate: new Date(`${values.dueDate}T12:00:00`).toISOString(),
         method: values.method,
@@ -155,11 +183,17 @@ export function PaymentFormDialog({
                 ))}
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-amount">Amount</Label>
-              <Input id="p-amount" inputMode="decimal" placeholder="0.00" {...register("amountInput")} />
-              <FieldError message={errors.amountInput?.message} />
-            </div>
+            <MoneyInput
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              amountField="amountInput"
+              amountId="p-amount"
+              label="Amount"
+              baseCurrency={baseCurrency}
+              fallbackRate={fallbackRate}
+            />
             <div className="space-y-1.5">
               <Label htmlFor="p-method">Method</Label>
               <Select id="p-method" {...register("method")}>
