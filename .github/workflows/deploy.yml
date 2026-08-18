@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -10,7 +11,7 @@ permissions:
 jobs:
   release-and-deploy:
     runs-on: ubuntu-latest
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release):') }}
+    if: ${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,7 +34,7 @@ jobs:
 
       - name: Wait for API deploy + health (Railway auto-deploys on push)
         env:
-          RAILWAY_URL: ${{ vars.RAILWAY_URL }}
+          RAILWAY_URL: ${{ secrets.RAILWAY_URL }}
         run: node scripts/ci/wait-for-health.mjs
 
       - name: Deploy web (Vercel)
